@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const mysql = require('mysql2');
 
 const app = express();
 
@@ -8,22 +9,26 @@ app.use(cors());
 app.use(express.static(__dirname));
 
 /* =======================
-   IN-MEMORY DATA
+   MYSQL CONNECTION
 ======================= */
+const db = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: 'YOUR_PASSWORD',   // <-- change this
+  database: 'CS3110project'
+});
 
-let todos = [];
-let classes = [];
-
-/* Users with roles */
-let users = [
-  { username: 'admin', password: 'adminpass1', role: 'admin' },
-  { username: 'author', password: 'authorpass1', role: 'author' }
-];
+db.connect(err => {
+  if (err) {
+    console.error('MySQL connection failed:', err);
+  } else {
+    console.log('Connected to MySQL database');
+  }
+});
 
 /* =======================
    BASIC AUTH MIDDLEWARE
 ======================= */
-
 function basicAuth(req, res, next) {
   const authHeader = req.headers['authorization'];
 
@@ -36,159 +41,172 @@ function basicAuth(req, res, next) {
   const decoded = Buffer.from(base64, 'base64').toString();
   const [username, password] = decoded.split(':');
 
-  const user = users.find(
-    u => u.username === username && u.password === password
+  db.query(
+    'SELECT * FROM users WHERE username = ? AND password = ?',
+    [username, password],
+    (err, results) => {
+      if (err) return res.status(500).send(err);
+
+      if (results.length === 0) {
+        return res.status(401).send('Invalid credentials');
+      }
+
+      req.user = results[0];
+      next();
+    }
   );
-
-  if (!user) {
-    return res.status(401).send('Invalid credentials');
-  }
-
-  req.user = user;
-  next();
 }
 
 /* =======================
    TODO ROUTES
 ======================= */
 
-/* GET (unauthenticated) */
+/* GET TODOS */
 app.get('/api/todos', (req, res) => {
-  res.json(todos);
+  db.query(
+    'SELECT * FROM todos',
+    (err, results) => {
+      if (err) return res.status(500).send(err);
+      res.json(results);
+    }
+  );
 });
 
-/* POST (authenticated) */
+/* CREATE TODO */
 app.post('/api/todos', basicAuth, (req, res) => {
-  const todo = {
-    id: Date.now(),
-    text: req.body.text,
-    completed: false
-  };
+  const { text } = req.body;
 
-  todos.push(todo);
-  res.json(todo);
+  db.query(
+    'INSERT INTO todos (text, completed, username) VALUES (?, ?, ?)',
+    [text, false, req.user.username],
+    (err, result) => {
+      if (err) return res.status(500).send(err);
+
+      res.json({
+        id: result.insertId,
+        text,
+        completed: false
+      });
+    }
+  );
 });
 
-/* PUT (authenticated) */
+/* UPDATE TODO */
 app.put('/api/todos/:id', basicAuth, (req, res) => {
-  const id = Number(req.params.id);
-  const todo = todos.find(t => t.id === id);
+  const id = req.params.id;
+  const { text, completed } = req.body;
 
-  if (!todo) {
-    return res.status(404).json({ error: 'Not found' });
-  }
-
-  todo.text = req.body.text;
-  todo.completed = req.body.completed;
-
-  res.json({ message: 'Todo updated' });
+  db.query(
+    'UPDATE todos SET text = ?, completed = ? WHERE id = ?',
+    [text, completed, id],
+    (err) => {
+      if (err) return res.status(500).send(err);
+      res.json({ message: 'Todo updated' });
+    }
+  );
 });
 
-/* DELETE (authenticated) */
+/* DELETE TODO */
 app.delete('/api/todos/:id', basicAuth, (req, res) => {
-  const id = Number(req.params.id);
-  todos = todos.filter(t => t.id !== id);
+  const id = req.params.id;
 
-  res.json({ message: 'Todo deleted' });
+  db.query(
+    'DELETE FROM todos WHERE id = ?',
+    [id],
+    (err) => {
+      if (err) return res.status(500).send(err);
+      res.json({ message: 'Todo deleted' });
+    }
+  );
 });
 
 /* =======================
    CLASS ROUTES
 ======================= */
 
-/* GET (unauthenticated) */
+/* GET CLASSES */
 app.get('/api/classes', (req, res) => {
-  res.json(classes);
+  db.query(
+    'SELECT * FROM classes',
+    (err, results) => {
+      if (err) return res.status(500).send(err);
+      res.json(results);
+    }
+  );
 });
 
-/* POST (authenticated) */
+/* CREATE CLASS */
 app.post('/api/classes', basicAuth, (req, res) => {
   const { className, day, time } = req.body;
 
-  if (!className || !day || !time) {
-    return res.status(400).json({ error: 'Missing fields' });
-  }
+  db.query(
+    'INSERT INTO classes (className, day, time, username) VALUES (?, ?, ?, ?)',
+    [className, day, time, req.user.username],
+    (err, result) => {
+      if (err) return res.status(500).send(err);
 
-  const newClass = {
-    id: Date.now(),
-    className,
-    day,
-    time
-  };
-
-  classes.push(newClass);
-  res.json(newClass);
+      res.json({
+        id: result.insertId,
+        className,
+        day,
+        time
+      });
+    }
+  );
 });
 
-/* PUT (authenticated) */
+/* UPDATE CLASS */
 app.put('/api/classes/:id', basicAuth, (req, res) => {
-  const id = Number(req.params.id);
-  const cls = classes.find(c => c.id === id);
+  const id = req.params.id;
+  const { className, day, time } = req.body;
 
-  if (!cls) {
-    return res.status(404).json({ error: 'Class not found' });
-  }
-
-  cls.className = req.body.className;
-  cls.day = req.body.day;
-  cls.time = req.body.time;
-
-  res.json({ message: 'Class updated' });
+  db.query(
+    'UPDATE classes SET className = ?, day = ?, time = ? WHERE id = ?',
+    [className, day, time, id],
+    (err) => {
+      if (err) return res.status(500).send(err);
+      res.json({ message: 'Class updated' });
+    }
+  );
 });
 
-/* DELETE (authenticated) */
+/* DELETE CLASS */
 app.delete('/api/classes/:id', basicAuth, (req, res) => {
-  const id = Number(req.params.id);
-  classes = classes.filter(c => c.id !== id);
+  const id = req.params.id;
 
-  res.json({ message: 'Class deleted' });
+  db.query(
+    'DELETE FROM classes WHERE id = ?',
+    [id],
+    (err) => {
+      if (err) return res.status(500).send(err);
+      res.json({ message: 'Class deleted' });
+    }
+  );
 });
 
 /* =======================
    USER ROUTES (ADMIN ONLY)
 ======================= */
-
 app.post('/api/users', basicAuth, (req, res) => {
   if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Forbidden: admin only' });
+    return res.status(403).json({ error: 'Forbidden' });
   }
 
   const { username, password, role } = req.body;
 
-  if (!username || !password || !role) {
-    return res.status(400).json({ error: 'Missing fields' });
-  }
-
-  if (users.find(u => u.username === username)) {
-    return res.status(400).json({ error: 'User already exists' });
-  }
-
-  users.push({ username, password, role });
-
-  res.json({ message: 'User created' });
-});
-
-const mysql = require('mysql2');
-
-const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'YOUR_PASSWORD',
-  database: 'todo_app'
-});
-
-db.connect(err => {
-  if (err) {
-    console.error('DB connection failed:', err);
-  } else {
-    console.log('Connected to MySQL');
-  }
+  db.query(
+    'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+    [username, password, role],
+    (err) => {
+      if (err) return res.status(500).send(err);
+      res.json({ message: 'User created' });
+    }
+  );
 });
 
 /* =======================
-   SERVER
+   SERVER START
 ======================= */
-
 app.listen(3000, () => {
   console.log('Server running on http://localhost:3000');
 });
