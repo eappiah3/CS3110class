@@ -12,9 +12,9 @@ app.use(express.static(__dirname));
    MYSQL CONNECTION
 ======================= */
 const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'YOUR_PASSWORD',   // <-- change this
+  host: '127.0.0.1',
+  user: 'appuser',
+  password: 'appuser123',
   database: 'CS3110project'
 });
 

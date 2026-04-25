@@ -1,3 +1,4 @@
+DROP DATABASE IF EXISTS CS3110project;
 CREATE DATABASE CS3110project;
 USE CS3110project;
 
@@ -23,6 +24,6 @@ CREATE TABLE classes (
   username VARCHAR(255)
 );
 
-CREATE USER 'appuser'@'localhost' IDENTIFIED BY 'appuser123';
+CREATE USER 'appuser'@'%' IDENTIFIED BY 'appuser123';
 GRANT ALL PRIVILEGES ON `CS3110project`.* TO 'appuser'@'localhost';
 FLUSH PRIVILEGES;
