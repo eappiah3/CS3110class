@@ -168,6 +168,23 @@ app.post('/api/users', basicAuth, (req, res) => {
   res.json({ message: 'User created' });
 });
 
+const mysql = require('mysql2');
+
+const db = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  password: 'YOUR_PASSWORD',
+  database: 'todo_app'
+});
+
+db.connect(err => {
+  if (err) {
+    console.error('DB connection failed:', err);
+  } else {
+    console.log('Connected to MySQL');
+  }
+});
+
 /* =======================
    SERVER
 ======================= */
