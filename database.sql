@@ -14,6 +14,9 @@ CREATE TABLE todos (
   text VARCHAR(255),
   completed BOOLEAN DEFAULT false,
   username VARCHAR(255)
+  last_modified_by VARCHAR(255),
+  last_modified_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  FOREIGN KEY (username) REFERENCES users(username)
 );
 
 CREATE TABLE classes (
@@ -22,8 +25,11 @@ CREATE TABLE classes (
   day VARCHAR(50),
   time VARCHAR(50),
   username VARCHAR(255)
+  last_modified_by VARCHAR(255),
+  last_modified_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  FOREIGN KEY (username) REFERENCES users(username)
 );
 
 CREATE USER 'appuser'@'%' IDENTIFIED BY 'appuser123';
-GRANT ALL PRIVILEGES ON `CS3110project`.* TO 'appuser'@'localhost';
+GRANT ALL PRIVILEGES ON `CS3110project`.* TO 'appuser'@'%';
 FLUSH PRIVILEGES;
