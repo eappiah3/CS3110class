@@ -77,8 +77,8 @@ app.post('/api/todos', basicAuth, (req, res) => {
   const { text } = req.body;
 
   db.query(
-    'INSERT INTO todos (text, completed, username) VALUES (?, ?, ?)',
-    [text, false, req.user.username],
+    'INSERT INTO todos (text, completed, username, last_modified_by) VALUES (?, ?, ?, ?)',
+    [text, false, req.user.username, req.user.username],
     (err, result) => {
       if (err) return res.status(500).send(err);
 
@@ -97,8 +97,8 @@ app.put('/api/todos/:id', basicAuth, (req, res) => {
   const { text, completed } = req.body;
 
   db.query(
-    'UPDATE todos SET text = ?, completed = ? WHERE id = ?',
-    [text, completed, id],
+    'UPDATE todos SET text = ?, completed = ?, last_modified_by = ? WHERE id = ?',
+    [text, completed, req.user.username, id],
     (err) => {
       if (err) return res.status(500).send(err);
       res.json({ message: 'Todo updated' });
@@ -140,8 +140,8 @@ app.post('/api/classes', basicAuth, (req, res) => {
   const { className, day, time } = req.body;
 
   db.query(
-    'INSERT INTO classes (className, day, time, username) VALUES (?, ?, ?, ?)',
-    [className, day, time, req.user.username],
+    'INSERT INTO classes (className, day, time, username, last_modified_by) VALUES (?, ?, ?, ?, ?)',
+    [className, day, time, req.user.username, req.user.username],
     (err, result) => {
       if (err) return res.status(500).send(err);
 
@@ -161,8 +161,8 @@ app.put('/api/classes/:id', basicAuth, (req, res) => {
   const { className, day, time } = req.body;
 
   db.query(
-    'UPDATE classes SET className = ?, day = ?, time = ? WHERE id = ?',
-    [className, day, time, id],
+    'UPDATE classes SET className = ?, day = ?, time = ?, last_modified_by = ? WHERE id = ?',
+    [className, day, time, req.user.username, id],
     (err) => {
       if (err) return res.status(500).send(err);
       res.json({ message: 'Class updated' });
