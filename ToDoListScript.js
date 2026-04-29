@@ -86,7 +86,7 @@ function addTodoToDOM(todo) {
   checkbox.checked = todo.completed;
 
   const span = document.createElement('span');
-  span.textContent = todo.text;
+  span.textContent = `${todo.text} (Last edited by ${todo.last_modified_by})`;
 
   /* UPDATE (PUT) */
   checkbox.onchange = async () => {
