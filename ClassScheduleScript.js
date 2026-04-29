@@ -31,7 +31,7 @@ async function loadClasses() {
 
     data.forEach(cls => {
       const li = document.createElement('li');
-      li.textContent = `${cls.day} - ${cls.time} : ${cls.className}`;
+      li.textContent = `${cls.day} - ${cls.time} : ${cls.className} (Last edited by ${cls.last_modified_by})`;
 
       /* EDIT (click) */
       li.onclick = async () => {
@@ -128,3 +128,4 @@ form.addEventListener('submit', async (e) => {
    INITIAL LOAD
 ======================= */
 loadClasses();
+setInterval(loadClasses, 5000);
