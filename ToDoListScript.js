@@ -151,3 +151,4 @@ function addTodoToDOM(todo) {
    INITIAL LOAD
 ======================= */
 loadTodos();
+setInterval(loadTodos, 5000);
