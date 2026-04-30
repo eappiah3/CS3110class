@@ -1,34 +1,35 @@
 const form = document.getElementById('todoForm');
 const input = document.getElementById('input');
 const list = document.getElementById('todoList');
-
-const API = 'https://eacs3110.mooo.com/api/todos'; // keep yours if this is correct
+const API = 'https://eacs3110.mooo.com/api/todos';
 
 /* =======================
-   AUTH HELPER (RESET EACH TIME FOR DEBUG)
+   AUTH HELPER (CACHED)
 ======================= */
 function getAuthHeader() {
-  const username = prompt("Username:");
-  const password = prompt("Password:");
-
+  let username = localStorage.getItem("username");
+  let password = localStorage.getItem("password");
+  if (!username || !password) {
+    username = prompt("Username:");
+    password = prompt("Password:");
+    localStorage.setItem("username", username);
+    localStorage.setItem("password", password);
+  }
   return "Basic " + btoa(`${username}:${password}`);
 }
 
 /* =======================
-   CREATE TODO (DEBUG VERSION)
+   CREATE TODO
 ======================= */
 form.addEventListener('submit', async function (event) {
   event.preventDefault();
-
   const text = input.value.trim();
   if (!text) {
     alert("Todo cannot be empty");
     return;
   }
-
   try {
     form.querySelector('button').disabled = true;
-
     const res = await fetch(API, {
       method: 'POST',
       headers: {
@@ -38,7 +39,6 @@ form.addEventListener('submit', async function (event) {
       body: JSON.stringify({ text })
     });
 
-    // 🔥 IMPORTANT: SHOW REAL SERVER ERROR
     if (!res.ok) {
       const errorText = await res.text();
       console.error("SERVER ERROR:", res.status, errorText);
@@ -46,14 +46,11 @@ form.addEventListener('submit', async function (event) {
     }
 
     const newTodo = await res.json();
-
     addTodoToDOM(newTodo);
     input.value = '';
-
   } catch (err) {
     console.error("FRONTEND ERROR:", err);
     alert('Could not add todo: ' + err.message);
-
   } finally {
     form.querySelector('button').disabled = false;
   }
@@ -65,20 +62,15 @@ form.addEventListener('submit', async function (event) {
 async function loadTodos() {
   try {
     list.innerHTML = '<li>Loading...</li>';
-
     const res = await fetch(API);
-
     if (!res.ok) {
       const msg = await res.text();
       console.error("LOAD ERROR:", res.status, msg);
       throw new Error(msg);
     }
-
     const data = await res.json();
-
     list.innerHTML = '';
     data.forEach(addTodoToDOM);
-
   } catch (err) {
     console.error(err);
     list.innerHTML = '<li>Error loading To-Do List</li>';
@@ -112,15 +104,12 @@ function addTodoToDOM(todo) {
           completed: checkbox.checked
         })
       });
-
       if (!res.ok) {
         const msg = await res.text();
         console.error("UPDATE ERROR:", msg);
         throw new Error(msg);
       }
-
       li.classList.toggle('completed', checkbox.checked);
-
     } catch (err) {
       console.error(err);
       alert('Could not update todo');
@@ -131,7 +120,6 @@ function addTodoToDOM(todo) {
   /* DELETE */
   li.ondblclick = async () => {
     if (!confirm('Delete this to do list item?')) return;
-
     try {
       const res = await fetch(`${API}/${todo.id}`, {
         method: 'DELETE',
@@ -139,15 +127,12 @@ function addTodoToDOM(todo) {
           'Authorization': getAuthHeader()
         }
       });
-
       if (!res.ok) {
         const msg = await res.text();
         console.error("DELETE ERROR:", msg);
         throw new Error(msg);
       }
-
       li.remove();
-
     } catch (err) {
       console.error(err);
       alert('Could not delete todo');
