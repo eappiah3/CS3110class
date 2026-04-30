@@ -2,7 +2,6 @@ const API = '/api/classes';
 
 const form = document.getElementById('classScheduleForm');
 const list = document.getElementById('classSchedule');
-
 /* =======================
    AUTH HELPER
 ======================= */
@@ -18,22 +17,78 @@ function getAuthHeader() {
 }
 
 /* =======================
-   LOAD CLASSES (GET - NO AUTH)
+   NOTIFICATIONS
+======================= */
+async function requestNotificationPermission() {
+  if (!("Notification" in window)) {
+    alert("This browser does not support notifications.");
+    return;
+  }
+
+  const permission = await Notification.requestPermission();
+
+  if (permission === "granted") {
+    console.log("Notifications enabled");
+  }
+}
+
+function showNotificationOnce(id, title, body) {
+  if (Notification.permission !== "granted") return;
+
+  if (localStorage.getItem("notified_" + id)) return;
+
+  new Notification(title, {
+    body: body
+  });
+
+  localStorage.setItem("notified_" + id, "true");
+}
+
+function checkUpcomingClasses(classes) {
+  const now = new Date();
+
+  classes.forEach(cls => {
+    const [hour, minute] = cls.time.split(":");
+
+    const classTime = new Date();
+    classTime.setHours(hour);
+    classTime.setMinutes(minute);
+    classTime.setSeconds(0);
+
+    const diff = (classTime - now) / 60000;
+
+    if (diff > 0 && diff <= 15) {
+      showNotificationOnce(
+        cls.id,
+        "Upcoming Class",
+        `${cls.className} starts in ${Math.floor(diff)} minutes`
+      );
+    }
+  });
+}
+
+/* =======================
+   LOAD CLASSES
 ======================= */
 async function loadClasses() {
   try {
-    const res = await fetch(API); // ❗ unauthenticated GET
+    const res = await fetch(API);
+
     if (!res.ok) throw new Error('Failed to fetch classes');
 
     const data = await res.json();
 
     list.innerHTML = '';
 
+    checkUpcomingClasses(data);
+
     data.forEach(cls => {
       const li = document.createElement('li');
-      li.textContent = `${cls.day} - ${cls.time} : ${cls.className} (Last edited by ${cls.last_modified_by})`;
 
-      /* EDIT (click) */
+      li.textContent =
+        `${cls.day} - ${cls.time} : ${cls.className} (Last edited by ${cls.last_modified_by})`;
+
+      /* EDIT */
       li.onclick = async () => {
         const className = prompt("Edit class name:", cls.className);
         const day = prompt("Edit day:", cls.day);
@@ -53,7 +108,8 @@ async function loadClasses() {
 
           if (!res.ok) throw new Error('Update failed');
 
-          li.textContent = `${day} - ${time} : ${className}`;
+          li.textContent =
+            `${day} - ${time} : ${className} (Last edited by you)`;
 
         } catch (err) {
           console.error(err);
@@ -61,9 +117,10 @@ async function loadClasses() {
         }
       };
 
-      /* DELETE (double click) */
+      /* DELETE */
       li.ondblclick = async () => {
         const confirmDelete = confirm('Delete this class?');
+
         if (!confirmDelete) return;
 
         try {
@@ -94,7 +151,7 @@ async function loadClasses() {
 }
 
 /* =======================
-   CREATE CLASS (POST)
+   CREATE CLASS
 ======================= */
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -127,5 +184,6 @@ form.addEventListener('submit', async (e) => {
 /* =======================
    INITIAL LOAD
 ======================= */
+requestNotificationPermission();
 loadClasses();
 setInterval(loadClasses, 5000);
