@@ -22,14 +22,12 @@ function getAuthHeader() {
 ======================= */
 async function requestNotificationPermission() {
   if (!("Notification" in window)) {
-    alert("This browser does not support notifications.");
+    console.log("Notifications not supported");
     return;
   }
 
-  const permission = await Notification.requestPermission();
-
-  if (permission === "granted") {
-    console.log("Notifications enabled");
+  if (Notification.permission === "default") {
+    await Notification.requestPermission();
   }
 }
 
@@ -38,31 +36,53 @@ function showNotificationOnce(id, title, body) {
 
   if (localStorage.getItem("notified_" + id)) return;
 
-  new Notification(title, {
-    body: body
-  });
+  new Notification(title, { body });
 
   localStorage.setItem("notified_" + id, "true");
 }
 
-function checkUpcomingClasses(classes) {
+/* =======================
+   DATE / TIME LOGIC
+======================= */
+function getClassDateTime(timeString) {
   const now = new Date();
+  const [hour, minute] = timeString.split(":");
 
+  const classTime = new Date(now);
+  classTime.setHours(parseInt(hour));
+  classTime.setMinutes(parseInt(minute));
+  classTime.setSeconds(0);
+  classTime.setMilliseconds(0);
+
+  return classTime;
+}
+
+function getTimeDifferenceMinutes(classTime) {
+  const now = new Date();
+  return (classTime - now) / 60000;
+}
+
+/* =======================
+   NOTIFICATION CHECK
+======================= */
+function checkUpcomingClasses(classes) {
   classes.forEach(cls => {
-    const [hour, minute] = cls.time.split(":");
-
-    const classTime = new Date();
-    classTime.setHours(hour);
-    classTime.setMinutes(minute);
-    classTime.setSeconds(0);
-
-    const diff = (classTime - now) / 60000;
+    const classTime = getClassDateTime(cls.time);
+    const diff = getTimeDifferenceMinutes(classTime);
 
     if (diff > 0 && diff <= 15) {
       showNotificationOnce(
         cls.id,
         "Upcoming Class",
         `${cls.className} starts in ${Math.floor(diff)} minutes`
+      );
+    }
+
+    if (diff <= 0 && diff > -5) {
+      showNotificationOnce(
+        cls.id + "_start",
+        "Class Started",
+        `${cls.className} is starting now`
       );
     }
   });
@@ -74,71 +94,90 @@ function checkUpcomingClasses(classes) {
 async function loadClasses() {
   try {
     const res = await fetch(API);
-
-    if (!res.ok) throw new Error('Failed to fetch classes');
+    if (!res.ok) throw new Error("Failed to fetch classes");
 
     const data = await res.json();
 
-    list.innerHTML = '';
+    list.innerHTML = "";
 
     checkUpcomingClasses(data);
 
     data.forEach(cls => {
-      const li = document.createElement('li');
+      const li = document.createElement("li");
+
+      const classTime = getClassDateTime(cls.time);
+      const diff = getTimeDifferenceMinutes(classTime);
+
+      let status = "";
+      let color = "";
+
+      if (diff < 0) {
+        status = "OVERDUE";
+        color = "red";
+      } else if (diff <= 15) {
+        status = `SOON (${Math.floor(diff)} min)`;
+        color = "orange";
+      } else {
+        status = `UPCOMING (${Math.floor(diff)} min)`;
+        color = "green";
+      }
+
+      li.style.color = color;
 
       li.textContent =
-        `${cls.day} - ${cls.time} : ${cls.className} (Last edited by ${cls.last_modified_by})`;
+        `${cls.day} - ${cls.time} : ${cls.className} [${status}] (Last edited by ${cls.last_modified_by})`;
 
-      /* EDIT */
+      /* =======================
+         EDIT
+      ======================= */
       li.onclick = async () => {
         const className = prompt("Edit class name:", cls.className);
         const day = prompt("Edit day:", cls.day);
-        const time = prompt("Edit time:", cls.time);
+        const time = prompt("Edit time (HH:MM):", cls.time);
 
         if (!className || !day || !time) return;
 
         try {
           const res = await fetch(`${API}/${cls.id}`, {
-            method: 'PUT',
+            method: "PUT",
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': getAuthHeader()
+              "Content-Type": "application/json",
+              "Authorization": getAuthHeader()
             },
             body: JSON.stringify({ className, day, time })
           });
 
-          if (!res.ok) throw new Error('Update failed');
+          if (!res.ok) throw new Error("Update failed");
 
-          li.textContent =
-            `${day} - ${time} : ${className} (Last edited by you)`;
+          loadClasses();
 
         } catch (err) {
           console.error(err);
-          alert('Could not update class');
+          alert("Could not update class");
         }
       };
 
-      /* DELETE */
+      /* =======================
+         DELETE
+      ======================= */
       li.ondblclick = async () => {
-        const confirmDelete = confirm('Delete this class?');
-
-        if (!confirmDelete) return;
+        if (!confirm("Delete this class?")) return;
 
         try {
           const res = await fetch(`${API}/${cls.id}`, {
-            method: 'DELETE',
+            method: "DELETE",
             headers: {
-              'Authorization': getAuthHeader()
+              "Authorization": getAuthHeader()
             }
           });
 
-          if (!res.ok) throw new Error('Delete failed');
+          if (!res.ok) throw new Error("Delete failed");
 
           li.remove();
 
         } catch (err) {
           console.error(err);
-          alert('Could not delete class');
+          alert("Could not delete class");
         }
       };
 
@@ -147,43 +186,43 @@ async function loadClasses() {
 
   } catch (err) {
     console.error(err);
-    list.innerHTML = '<li>Error loading classes</li>';
+    list.innerHTML = "<li>Error loading classes</li>";
   }
 }
 
 /* =======================
    CREATE CLASS
 ======================= */
-form.addEventListener('submit', async (e) => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const className = document.getElementById('className').value;
-  const day = document.getElementById('day').value;
-  const time = document.getElementById('time').value;
+  const className = document.getElementById("className").value;
+  const day = document.getElementById("day").value;
+  const time = document.getElementById("time").value;
 
   try {
     const res = await fetch(API, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': getAuthHeader()
+        "Content-Type": "application/json",
+        "Authorization": getAuthHeader()
       },
       body: JSON.stringify({ className, day, time })
     });
 
-    if (!res.ok) throw new Error('Failed to create class');
+    if (!res.ok) throw new Error("Failed to create class");
 
     form.reset();
     loadClasses();
 
   } catch (err) {
     console.error(err);
-    alert('Could not add class');
+    alert("Could not add class");
   }
 });
 
 /* =======================
-   INITIAL LOAD
+   INIT
 ======================= */
 requestNotificationPermission();
 loadClasses();
