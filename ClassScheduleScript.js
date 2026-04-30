@@ -2,6 +2,7 @@ const API = '/api/classes';
 
 const form = document.getElementById('classScheduleForm');
 const list = document.getElementById('classSchedule');
+
 /* =======================
    AUTH HELPER
 ======================= */
