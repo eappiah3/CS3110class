@@ -2,30 +2,29 @@ const form = document.getElementById('todoForm');
 const input = document.getElementById('input');
 const list = document.getElementById('todoList');
 
-const API = 'https://eacs3110.mooo.com/api/todos';
+const API = 'https://eacs3110.mooo.com/api/todos'; // keep yours if this is correct
 
 /* =======================
-   AUTH HELPER
+   AUTH HELPER (RESET EACH TIME FOR DEBUG)
 ======================= */
-let authHeader = null;
-
 function getAuthHeader() {
-  if (!authHeader) {
-    const username = prompt("Username:");
-    const password = prompt("Password:");
-    authHeader = "Basic " + btoa(`${username}:${password}`);
-  }
-  return authHeader;
+  const username = prompt("Username:");
+  const password = prompt("Password:");
+
+  return "Basic " + btoa(`${username}:${password}`);
 }
 
 /* =======================
-   CREATE (POST)
+   CREATE TODO (DEBUG VERSION)
 ======================= */
 form.addEventListener('submit', async function (event) {
   event.preventDefault();
 
   const text = input.value.trim();
-  if (!text) return;
+  if (!text) {
+    alert("Todo cannot be empty");
+    return;
+  }
 
   try {
     form.querySelector('button').disabled = true;
@@ -39,7 +38,12 @@ form.addEventListener('submit', async function (event) {
       body: JSON.stringify({ text })
     });
 
-    if (!res.ok) throw new Error('Failed to create todo');
+    // 🔥 IMPORTANT: SHOW REAL SERVER ERROR
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("SERVER ERROR:", res.status, errorText);
+      throw new Error(errorText || 'Failed to create todo');
+    }
 
     const newTodo = await res.json();
 
@@ -47,22 +51,28 @@ form.addEventListener('submit', async function (event) {
     input.value = '';
 
   } catch (err) {
-    console.error(err);
-    alert('Could not add todo');
+    console.error("FRONTEND ERROR:", err);
+    alert('Could not add todo: ' + err.message);
+
   } finally {
     form.querySelector('button').disabled = false;
   }
 });
 
 /* =======================
-   READ (GET - NO AUTH)
+   LOAD TODOS
 ======================= */
 async function loadTodos() {
   try {
     list.innerHTML = '<li>Loading...</li>';
 
-    const res = await fetch(API); // ❗ NO Authorization here
-    if (!res.ok) throw new Error('Failed to fetch todos');
+    const res = await fetch(API);
+
+    if (!res.ok) {
+      const msg = await res.text();
+      console.error("LOAD ERROR:", res.status, msg);
+      throw new Error(msg);
+    }
 
     const data = await res.json();
 
@@ -76,7 +86,7 @@ async function loadTodos() {
 }
 
 /* =======================
-   CREATE DOM ELEMENT
+   RENDER TODO
 ======================= */
 function addTodoToDOM(todo) {
   const li = document.createElement('li');
@@ -88,7 +98,7 @@ function addTodoToDOM(todo) {
   const span = document.createElement('span');
   span.textContent = `${todo.text} (Last edited by ${todo.last_modified_by})`;
 
-  /* UPDATE (PUT) */
+  /* UPDATE */
   checkbox.onchange = async () => {
     try {
       const res = await fetch(`${API}/${todo.id}`, {
@@ -103,21 +113,24 @@ function addTodoToDOM(todo) {
         })
       });
 
-      if (!res.ok) throw new Error('Update failed');
+      if (!res.ok) {
+        const msg = await res.text();
+        console.error("UPDATE ERROR:", msg);
+        throw new Error(msg);
+      }
 
       li.classList.toggle('completed', checkbox.checked);
 
     } catch (err) {
       console.error(err);
       alert('Could not update todo');
-      checkbox.checked = !checkbox.checked; // revert UI
+      checkbox.checked = !checkbox.checked;
     }
   };
 
   /* DELETE */
   li.ondblclick = async () => {
-    const confirmDelete = confirm('Delete this to do list item?');
-    if (!confirmDelete) return;
+    if (!confirm('Delete this to do list item?')) return;
 
     try {
       const res = await fetch(`${API}/${todo.id}`, {
@@ -127,13 +140,17 @@ function addTodoToDOM(todo) {
         }
       });
 
-      if (!res.ok) throw new Error('Delete failed');
+      if (!res.ok) {
+        const msg = await res.text();
+        console.error("DELETE ERROR:", msg);
+        throw new Error(msg);
+      }
 
       li.remove();
 
     } catch (err) {
       console.error(err);
-      alert('Could not delete to do list item');
+      alert('Could not delete todo');
     }
   };
 
@@ -143,12 +160,8 @@ function addTodoToDOM(todo) {
 
   li.appendChild(checkbox);
   li.appendChild(span);
-
   list.appendChild(li);
 }
 
-/* =======================
-   INITIAL LOAD
-======================= */
 loadTodos();
 setInterval(loadTodos, 5000);
