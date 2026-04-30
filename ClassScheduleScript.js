@@ -1,5 +1,4 @@
 const API = '/api/classes';
-
 const form = document.getElementById('classScheduleForm');
 const list = document.getElementById('classSchedule');
 
@@ -9,15 +8,12 @@ const list = document.getElementById('classSchedule');
 function getAuthHeader() {
   let username = localStorage.getItem("username");
   let password = localStorage.getItem("password");
-
   if (!username || !password) {
     username = prompt("Username:");
     password = prompt("Password:");
-
     localStorage.setItem("username", username);
     localStorage.setItem("password", password);
   }
-
   return "Basic " + btoa(`${username}:${password}`);
 }
 
@@ -26,7 +22,6 @@ function getAuthHeader() {
 ======================= */
 async function requestNotificationPermission() {
   if (!("Notification" in window)) return;
-
   if (Notification.permission === "default") {
     await Notification.requestPermission();
   }
@@ -45,7 +40,6 @@ async function loadClasses() {
   try {
     // LOAD CACHE FIRST (instant UI)
     const cached = localStorage.getItem("cachedClasses");
-
     if (cached) {
       renderClasses(JSON.parse(cached));
     }
@@ -53,14 +47,11 @@ async function loadClasses() {
     // FETCH FROM SERVER
     const res = await fetch(API);
     if (!res.ok) throw new Error('Failed to fetch classes');
-
     const data = await res.json();
 
     // SAVE TO CACHE
     localStorage.setItem("cachedClasses", JSON.stringify(data));
-
     renderClasses(data);
-
   } catch (err) {
     console.error(err);
     list.innerHTML = '<li>Error loading classes</li>';
@@ -72,16 +63,12 @@ async function loadClasses() {
 ======================= */
 function renderClasses(data) {
   list.innerHTML = '';
-
   data.forEach(cls => {
     const li = document.createElement('li');
-
-    li.textContent =
-      `${cls.day} - ${cls.time} : ${cls.className} (Last edited by ${cls.last_modified_by})`;
+    li.textContent = `${cls.day} - ${cls.time} : ${cls.className} (Last edited by ${cls.last_modified_by})`;
 
     /* =======================
        NOTIFICATION ON CLICK
-       (simple demo usage)
     ======================= */
     li.onclick = () => {
       showNotification(
@@ -96,7 +83,6 @@ function renderClasses(data) {
     li.ondblclick = async () => {
       const confirmDelete = confirm('Delete this class?');
       if (!confirmDelete) return;
-
       try {
         const res = await fetch(`${API}/${cls.id}`, {
           method: 'DELETE',
@@ -104,11 +90,8 @@ function renderClasses(data) {
             'Authorization': getAuthHeader()
           }
         });
-
         if (!res.ok) throw new Error('Delete failed');
-
         li.remove();
-
       } catch (err) {
         console.error(err);
         alert('Could not delete class');
@@ -124,7 +107,6 @@ function renderClasses(data) {
 ======================= */
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
-
   const className = document.getElementById('className').value;
   const day = document.getElementById('day').value;
   const time = document.getElementById('time').value;
@@ -138,17 +120,13 @@ form.addEventListener('submit', async (e) => {
       },
       body: JSON.stringify({ className, day, time })
     });
-
     if (!res.ok) throw new Error('Failed to create class');
-
     form.reset();
     loadClasses();
-
     showNotification(
       "Class Added",
       `${className} was successfully added`
     );
-
   } catch (err) {
     console.error(err);
     alert('Could not add class');
