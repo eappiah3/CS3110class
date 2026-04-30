@@ -36,6 +36,6 @@ INSERT INTO users (username, password, role)
   ('author', 'authorPass1!', 'author');
 
 -- Fixed: password now matches server.js connection password
-CREATE USER 'appuser'@'%' IDENTIFIED BY 'appuser123';
+CREATE USER 'appuser'@'%' IDENTIFIED BY 'appUser123!';
 GRANT ALL PRIVILEGES ON `CS3110project`.* TO 'appuser'@'%';
 FLUSH PRIVILEGES;
