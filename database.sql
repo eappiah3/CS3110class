@@ -32,8 +32,8 @@ CREATE TABLE classes (
 
 INSERT INTO users (username, password, role)
   VALUES 
-  ('admin', 'adminpass1', 'admin'),
-  ('author', 'authorpass1', 'author');
+  ('admin', 'adminPass1!', 'admin'),
+  ('author', 'authorPass1!', 'author');
 
 CREATE USER 'appuser'@'%' IDENTIFIED BY 'appuser123';
 GRANT ALL PRIVILEGES ON `CS3110project`.* TO 'appuser'@'%';
