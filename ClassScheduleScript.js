@@ -133,6 +133,14 @@ form.addEventListener('submit', async (e) => {
   }
 });
 
+function showNotification(title, body) {
+  console.log("Permission:", Notification.permission);
+  console.log("Trying to show:", title, body);
+  if (Notification.permission === "granted") {
+    new Notification(title, { body });
+  }
+}
+
 /* =======================
    CLEAR CACHE (OPTIONAL)
 ======================= */
