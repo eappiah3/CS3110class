@@ -1,3 +1,4 @@
+DROP DATABASE IF EXISTS CS3110project;
 CREATE DATABASE CS3110project;
 USE CS3110project;
 
@@ -30,14 +31,14 @@ CREATE TABLE classes (
 );
 
 INSERT INTO users (username, password, role)
-  VALUES 
-  ('admin', 'adminPass1!', 'admin'),
-  ('author', 'authorPass1!', 'author');
+VALUES
+('admin', 'adminPass1!', 'admin'),
+('author', 'authorPass1!', 'author');
 
-ALTER USER 'appuser'@'localhost' IDENTIFIED BY 'appUser123!';
+CREATE USER IF NOT EXISTS 'appuser'@'localhost' IDENTIFIED BY 'appUser123!';
 CREATE USER IF NOT EXISTS 'appuser'@'%' IDENTIFIED BY 'appUser123!';
-
+ALTER USER 'appuser'@'localhost' IDENTIFIED BY 'appUser123!';
+ALTER USER 'appuser'@'%' IDENTIFIED BY 'appUser123!';
 GRANT ALL PRIVILEGES ON CS3110project.* TO 'appuser'@'localhost';
 GRANT ALL PRIVILEGES ON CS3110project.* TO 'appuser'@'%';
-
 FLUSH PRIVILEGES;
