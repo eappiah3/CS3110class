@@ -11,10 +11,21 @@
 <a href="index.html">See To-Do List</a>
   <form id="classScheduleForm">
     <input type="text" id="className" placeholder="Class Name" required>
-    <input type="text" id="day" placeholder="Weekday" required>
+    <select id="day" required>
+      <option value="" disabled selected>Weekday</option>
+      <option>Monday</option>
+      <option>Tuesday</option>
+      <option>Wednesday</option>
+      <option>Thursday</option>
+      <option>Friday</option>
+      <option>Saturday</option>
+      <option>Sunday</option>
+    </select>
     <input type="time" id="time" required>
     <button type="submit">Add Class</button>
   </form>
+
+  <p style="font-size: 13px; color: #6b6b8a; margin-bottom: 10px;">Click to edit · Double-click to delete</p>
   
   <ul id="classSchedule"></ul>
                   
