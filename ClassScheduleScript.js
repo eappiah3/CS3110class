@@ -27,23 +27,26 @@ async function requestNotificationPermission() {
   }
 }
 
+function showNotification(title, body) {
+  if (Notification.permission === "granted") {
+    new Notification(title, { body });
+  }
+}
+
 /* =======================
    LOAD CLASSES (WITH CACHE)
 ======================= */
 async function loadClasses() {
   try {
-    // LOAD CACHE FIRST (instant UI)
     const cached = localStorage.getItem("cachedClasses");
     if (cached) {
       renderClasses(JSON.parse(cached));
     }
 
-    // FETCH FROM SERVER
     const res = await fetch(API);
     if (!res.ok) throw new Error('Failed to fetch classes');
     const data = await res.json();
 
-    // SAVE TO CACHE
     localStorage.setItem("cachedClasses", JSON.stringify(data));
     renderClasses(data);
   } catch (err) {
@@ -59,20 +62,17 @@ function renderClasses(data) {
   list.innerHTML = '';
   data.forEach(cls => {
     const li = document.createElement('li');
-    li.textContent = `${cls.day} - ${cls.time} : ${cls.className} (Last edited by ${cls.last_modified_by})`;
+
+    const span = document.createElement('span');
+    span.textContent = `${cls.day} - ${cls.time} : ${cls.className} (Last edited by ${cls.last_modified_by})`;
 
     /* =======================
-       NOTIFICATION ON CLICK
+       LEFT CLICK TO EDIT
     ======================= */
-    li.onclick = () => {
-      showNotification(
-        "Class Selected",
-        `${cls.className} on ${cls.day} at ${cls.time}`
-      );
-    };
+    li.onclick = () => openInlineEdit(li, cls);
 
     /* =======================
-       DELETE
+       DELETE ON DOUBLE CLICK
     ======================= */
     li.ondblclick = async () => {
       const confirmDelete = confirm('Delete this class?');
@@ -92,8 +92,60 @@ function renderClasses(data) {
       }
     };
 
+    li.appendChild(span);
     list.appendChild(li);
   });
+}
+
+/* =======================
+   INLINE EDIT
+======================= */
+function openInlineEdit(li, cls) {
+  if (li.querySelector('.edit-form')) return;
+
+  li.innerHTML = `
+    <form class="edit-form">
+      <input class="edit-className" value="${cls.className}" placeholder="Class Name" required />
+      <select class="edit-day">
+        ${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+          .map(d => `<option ${cls.day === d ? 'selected' : ''}>${d}</option>`).join('')}
+      </select>
+      <input class="edit-time" type="time" value="${cls.time}" required />
+      <button type="submit">Save</button>
+      <button type="button" class="cancel-btn">Cancel</button>
+    </form>
+  `;
+
+  li.querySelector('.cancel-btn').onclick = (e) => {
+    e.stopPropagation();
+    loadClasses();
+  };
+
+  li.querySelector('.edit-form').onsubmit = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const updated = {
+      className: li.querySelector('.edit-className').value,
+      day:       li.querySelector('.edit-day').value,
+      time:      li.querySelector('.edit-time').value,
+    };
+    try {
+      const res = await fetch(`${API}/${cls.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': getAuthHeader()
+        },
+        body: JSON.stringify(updated)
+      });
+      if (!res.ok) throw new Error('Update failed');
+      showNotification("Class Updated", `${updated.className} was successfully updated`);
+      loadClasses();
+    } catch (err) {
+      console.error(err);
+      alert('Could not update class');
+    }
+  };
 }
 
 /* =======================
@@ -104,7 +156,6 @@ form.addEventListener('submit', async (e) => {
   const className = document.getElementById('className').value;
   const day = document.getElementById('day').value;
   const time = document.getElementById('time').value;
-
   try {
     const res = await fetch(API, {
       method: 'POST',
@@ -117,24 +168,12 @@ form.addEventListener('submit', async (e) => {
     if (!res.ok) throw new Error('Failed to create class');
     form.reset();
     loadClasses();
-    showNotification(
-      "Class Added",
-      `${className} was successfully added`
-    );
+    showNotification("Class Added", `${className} was successfully added`);
   } catch (err) {
     console.error(err);
     alert('Could not add class');
   }
 });
-
-/* =======================
-   CLEAR CACHE (OPTIONAL)
-======================= */
-function clearCache() {
-  localStorage.removeItem("cachedClasses");
-  alert("Cache cleared");
-  loadClasses();
-}
 
 requestNotificationPermission();
 loadClasses();
