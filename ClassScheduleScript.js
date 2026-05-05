@@ -3,22 +3,27 @@ const form = document.getElementById('classScheduleForm');
 const list = document.getElementById('classSchedule');
 
 /* =======================
-   WEB STORAGE API
+   GET LOGIN DETAILS
+   Checks localStorage for saved username/password.
+   If not found, asks the user to enter them.
 ======================= */
 function getAuthHeader() {
   let username = localStorage.getItem("username");
   let password = localStorage.getItem("password");
+
   if (!username || !password) {
     username = prompt("Username:");
     password = prompt("Password:");
     localStorage.setItem("username", username);
     localStorage.setItem("password", password);
   }
+
   return "Basic " + btoa(`${username}:${password}`);
 }
 
 /* =======================
-   NOTIFICATIONS API
+   ASK FOR NOTIFICATION PERMISSION
+   Called once when the page loads.
 ======================= */
 async function requestNotificationPermission() {
   if (!("Notification" in window)) return;
@@ -27,6 +32,10 @@ async function requestNotificationPermission() {
   }
 }
 
+/* =======================
+   SHOW A NOTIFICATION
+   Only works if the user allowed notifications.
+======================= */
 function showNotification(title, body) {
   if (Notification.permission === "granted") {
     new Notification(title, { body });
@@ -34,7 +43,9 @@ function showNotification(title, body) {
 }
 
 /* =======================
-   LOAD CLASSES (WITH CACHE)
+   LOAD CLASSES FROM SERVER
+   Shows cached data first for speed,
+   then fetches fresh data from the server.
 ======================= */
 async function loadClasses() {
   try {
@@ -56,51 +67,89 @@ async function loadClasses() {
 }
 
 /* =======================
-   RENDER UI
+   DISPLAY THE CLASS LIST
+   Builds a list item for each class
+   and adds a double-click menu to each.
 ======================= */
 function renderClasses(data) {
   list.innerHTML = '';
+
   data.forEach(cls => {
     const li = document.createElement('li');
-
     const span = document.createElement('span');
     span.textContent = `${cls.day} - ${cls.time} : ${cls.className} (Last edited by ${cls.last_modified_by})`;
 
-    /* =======================
-       LEFT CLICK TO EDIT
-    ======================= */
-    li.onclick = () => openInlineEdit(li, cls);
-
-    /* =======================
-       DELETE ON DOUBLE CLICK
-    ======================= */
-    li.ondblclick = async () => {
-      const confirmDelete = confirm('Delete this class?');
-      if (!confirmDelete) return;
-      try {
-        const res = await fetch(`${API}/${cls.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': getAuthHeader()
-          }
-        });
-        if (!res.ok) throw new Error('Delete failed');
-        li.remove();
-      } catch (err) {
-        console.error(err);
-        alert('Could not delete class');
-      }
-    };
-
     li.appendChild(span);
     list.appendChild(li);
+
+    // Double-click opens the Edit / Delete menu
+    li.ondblclick = (e) => {
+      e.stopPropagation();
+      showContextMenu(e, li, cls);
+    };
   });
 }
 
 /* =======================
-   INLINE EDIT
+   SHOW EDIT / DELETE MENU
+   A small popup appears where the user double-clicked,
+   giving them the option to edit or delete the class.
+======================= */
+function showContextMenu(e, li, cls) {
+  // Remove any menu that's already open
+  document.querySelectorAll('.context-menu').forEach(m => m.remove());
+
+  // Build the menu
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  menu.innerHTML = `
+    <button class="ctx-edit">Edit</button>
+    <button class="ctx-delete">Delete</button>
+  `;
+
+  // Place the menu where the user clicked
+  document.body.appendChild(menu);
+  menu.style.top = `${e.pageY}px`;
+  menu.style.left = `${e.pageX}px`;
+
+  // Edit button opens the inline edit form
+  menu.querySelector('.ctx-edit').onclick = () => {
+    menu.remove();
+    openInlineEdit(li, cls);
+  };
+
+  // Delete button removes the class
+  menu.querySelector('.ctx-delete').onclick = async () => {
+    menu.remove();
+    const confirmDelete = confirm('Delete this class?');
+    if (!confirmDelete) return;
+
+    try {
+      const res = await fetch(`${API}/${cls.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': getAuthHeader() }
+      });
+      if (!res.ok) throw new Error('Delete failed');
+      li.remove();
+    } catch (err) {
+      console.error(err);
+      alert('Could not delete class');
+    }
+  };
+
+  // Close the menu if the user clicks anywhere else
+  setTimeout(() => {
+    document.addEventListener('click', () => menu.remove(), { once: true });
+  }, 0);
+}
+
+/* =======================
+   OPEN INLINE EDIT FORM
+   Replaces the list item with a form
+   pre-filled with the current class details.
 ======================= */
 function openInlineEdit(li, cls) {
+  // Don't open a second form if one is already open
   if (li.querySelector('.edit-form')) return;
 
   li.innerHTML = `
@@ -116,19 +165,23 @@ function openInlineEdit(li, cls) {
     </form>
   `;
 
+  // Cancel goes back to the normal list
   li.querySelector('.cancel-btn').onclick = (e) => {
     e.stopPropagation();
     loadClasses();
   };
 
+  // Save sends the updated data to the server
   li.querySelector('.edit-form').onsubmit = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+
     const updated = {
       className: li.querySelector('.edit-className').value,
       day:       li.querySelector('.edit-day').value,
       time:      li.querySelector('.edit-time').value,
     };
+
     try {
       const res = await fetch(`${API}/${cls.id}`, {
         method: 'PUT',
@@ -149,13 +202,16 @@ function openInlineEdit(li, cls) {
 }
 
 /* =======================
-   CREATE CLASS
+   ADD A NEW CLASS
+   Runs when the form at the top of the page is submitted.
 ======================= */
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
+
   const className = document.getElementById('className').value;
   const day = document.getElementById('day').value;
   const time = document.getElementById('time').value;
+
   try {
     const res = await fetch(API, {
       method: 'POST',
@@ -177,4 +233,4 @@ form.addEventListener('submit', async (e) => {
 
 requestNotificationPermission();
 loadClasses();
-setInterval(loadClasses, 5000);
+setInterval(loadClasses, 5000); // Refresh every 5 seconds
