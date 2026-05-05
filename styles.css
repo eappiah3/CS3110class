@@ -1,20 +1,213 @@
+font-family: 'DM Sans', Arial, sans-serif;
+
+/* =======================
+   RESET & BASE
+======================= */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 body {
-  font-family: Arial;
-  margin: 20px;
-  background-color: #e6e6ff
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  background-color: #e6e6ff;
+  color: #1e1b4b;
+  margin: 0;
+  padding: 32px 20px;
+  min-height: 100vh;
 }
 
-.completed {
-  text-decoration: line-through;
-  color: green;
+/* =======================
+   LAYOUT CONTAINER
+======================= */
+.container {
+  max-width: 680px;
+  margin: 0 auto;
 }
 
+h1, h2, h3 {
+  font-weight: 600;
+  color: #1e1b4b;
+  letter-spacing: -0.02em;
+}
+
+/* =======================
+   FORM CARD
+======================= */
+form#classScheduleForm {
+  background: #ffffff;
+  border: 0.5px solid #c7c3f5;
+  border-radius: 14px;
+  padding: 24px 28px;
+  margin-bottom: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+form#classScheduleForm input,
+form#classScheduleForm select {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 14px;
+  padding: 9px 13px;
+  border: 1px solid #c7c3f5;
+  border-radius: 8px;
+  background: #f5f4ff;
+  color: #1e1b4b;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  flex: 1 1 140px;
+}
+
+form#classScheduleForm input:focus,
+form#classScheduleForm select:focus {
+  border-color: #7c73e6;
+  box-shadow: 0 0 0 3px rgba(124, 115, 230, 0.15);
+  background: #ffffff;
+}
+
+form#classScheduleForm button[type="submit"] {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #534ab7;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+form#classScheduleForm button[type="submit"]:hover {
+  background: #3c3489;
+}
+
+form#classScheduleForm button[type="submit"]:active {
+  transform: scale(0.97);
+}
+
+/* =======================
+   LIST
+======================= */
 ul {
   list-style-type: none;
   padding-left: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
+/* =======================
+   LIST ITEMS
+======================= */
 li {
   list-style-type: none;
+  background: #ffffff;
+  border: 0.5px solid #c7c3f5;
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+}
+
+li:hover {
+  border-color: #7c73e6;
+  box-shadow: 0 2px 12px rgba(83, 74, 183, 0.1);
+}
+
+li span {
+  flex: 1;
+  font-size: 14px;
+  color: #2d2866;
+}
+
+/* =======================
+   COMPLETED STATE
+======================= */
+.completed span {
+  text-decoration: line-through;
+  color: #888;
+}
+
+/* =======================
+   INLINE EDIT FORM
+======================= */
+.edit-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.edit-form input,
+.edit-form select {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 13px;
+  padding: 7px 11px;
+  border: 1px solid #c7c3f5;
+  border-radius: 7px;
+  background: #f5f4ff;
+  color: #1e1b4b;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  flex: 1 1 120px;
+}
+
+.edit-form input:focus,
+.edit-form select:focus {
+  border-color: #7c73e6;
+  box-shadow: 0 0 0 3px rgba(124, 115, 230, 0.15);
+  background: #ffffff;
+}
+
+.edit-form button[type="submit"] {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 7px 16px;
+  border: none;
+  border-radius: 7px;
+  background: #534ab7;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  flex-shrink: 0;
+}
+
+.edit-form button[type="submit"]:hover {
+  background: #3c3489;
+}
+
+.edit-form button[type="submit"]:active {
+  transform: scale(0.97);
+}
+
+.cancel-btn {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border: 1px solid #c7c3f5;
+  border-radius: 7px;
+  background: #f5f4ff;
+  color: #6b6b8a;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.cancel-btn:hover {
+  background: #ede9ff;
+  color: #1e1b4b;
 }
