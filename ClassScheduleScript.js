@@ -1,6 +1,4 @@
 const CLASSES_API = '/api/classes';
-const form        = document.getElementById('classScheduleForm');
-const list        = document.getElementById('classSchedule');
 
 /* =======================
    GET AUTH HEADER
@@ -83,7 +81,7 @@ async function loadClasses() {
     renderClasses(data);
   } catch (err) {
     console.error(err);
-    list.innerHTML = '<li>Error loading classes</li>';
+    document.getElementById('classSchedule').innerHTML = '<li>Error loading classes</li>';
   }
 }
 
@@ -93,6 +91,7 @@ async function loadClasses() {
    and adds a double-click menu to each.
 ======================= */
 function renderClasses(data) {
+  const list = document.getElementById('classSchedule');
   list.innerHTML = '';
 
   data.forEach(cls => {
@@ -270,10 +269,10 @@ function openInlineEdit(li, cls) {
    ADD A NEW CLASS
    Runs when the form at the top of the page is submitted.
 ======================= */
-form.addEventListener('submit', async (e) => {
+document.getElementById('classScheduleForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const day = getSelectedDays(form);
+  const day = getSelectedDays(document.getElementById('classScheduleForm'));
   if (!day) {
     alert('Please select at least one day.');
     return;
@@ -298,7 +297,7 @@ form.addEventListener('submit', async (e) => {
       body: JSON.stringify({ className, day, time, location, start_date, frequency, specific_dates })
     });
     if (!res.ok) throw new Error('Failed to create class');
-    form.reset();
+    document.getElementById('classScheduleForm').reset();
     document.getElementById('specificDatesWrapper').style.display = 'none';
     loadClasses();
     showNotification("Class Added", `${className} was successfully added`);
