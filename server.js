@@ -1,7 +1,7 @@
 const express = require('express');
 const cors    = require('cors');
 const mysql   = require('mysql2');
-const crypto  = require('crypto'); // Built into Node — generates secure tokens
+const crypto  = require('crypto');
 const app     = express();
 
 app.use(express.json());
@@ -29,8 +29,7 @@ db.connect(err => {
 
 /* =======================
    SESSION AUTH MIDDLEWARE
-   Instead of checking username/password on every request,
-   we check the session token that was given at login.
+   Checks the session token sent with each request.
    The token is sent in the Authorization header as:
    "Bearer <token>"
 ======================= */
@@ -41,18 +40,14 @@ function sessionAuth(req, res, next) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  // Pull the token out of the header
   const token = authHeader.split(' ')[1];
 
-  // Look up the token in the sessions table
   db.query(
     'SELECT sessions.username, users.role FROM sessions JOIN users ON sessions.username = users.username WHERE sessions.id = ?',
     [token],
     (err, results) => {
       if (err)                  return res.status(500).send(err);
       if (results.length === 0) return res.status(401).json({ error: 'Invalid or expired session' });
-
-      // Attach the user info to the request so routes can use it
       req.user = results[0];
       next();
     }
@@ -78,19 +73,14 @@ app.post('/api/login', (req, res) => {
       if (err)                  return res.status(500).send(err);
       if (results.length === 0) return res.status(401).json({ error: 'Invalid username or password' });
 
-      const user = results[0];
-
-      // Generate a secure random token
+      const user  = results[0];
       const token = crypto.randomBytes(32).toString('hex');
 
-      // Save the token to the sessions table
       db.query(
         'INSERT INTO sessions (id, username) VALUES (?, ?)',
         [token, user.username],
         (err) => {
           if (err) return res.status(500).send(err);
-
-          // Send the token back to the client
           res.json({ token, username: user.username, role: user.role });
         }
       );
@@ -100,26 +90,28 @@ app.post('/api/login', (req, res) => {
 
 /* =======================
    LOGOUT
-   Deletes the session token from the database
-   so it can no longer be used.
+   Deletes the session token from the database.
 ======================= */
 app.post('/api/logout', sessionAuth, (req, res) => {
   const token = req.headers['authorization'].split(' ')[1];
+  db.query('DELETE FROM sessions WHERE id = ?', [token], (err) => {
+    if (err) return res.status(500).send(err);
+    res.json({ message: 'Logged out successfully' });
+  });
+});
 
-  db.query(
-    'DELETE FROM sessions WHERE id = ?',
-    [token],
-    (err) => {
-      if (err) return res.status(500).send(err);
-      res.json({ message: 'Logged out successfully' });
-    }
-  );
+/* =======================
+   VERIFY SESSION
+   A simple protected route to check
+   if the current token is valid.
+======================= */
+app.get('/api/verify', sessionAuth, (req, res) => {
+  res.json({ valid: true, username: req.user.username });
 });
 
 /* =======================
    SELF SIGNUP (PUBLIC)
    Anyone can create a regular account.
-   No login required for this route.
 ======================= */
 app.post('/api/signup', (req, res) => {
   const { username, password } = req.body;
@@ -205,13 +197,32 @@ app.get('/api/classes', (req, res) => {
 
 /* CREATE CLASS — Login required */
 app.post('/api/classes', sessionAuth, (req, res) => {
-  const { className, day, time, location, frequency, specific_dates, start_date } = req.body;
+  const { className, day, time, location, frequency, specific_dates, start_date, end_date } = req.body;
   db.query(
-    'INSERT INTO classes (className, day, time, location, frequency, specific_dates, start_date, username, last_modified_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [className, day || null, time, location || null, frequency || 'none', specific_dates || null, start_date || null, req.user.username, req.user.username],
+    'INSERT INTO classes (className, day, time, location, frequency, specific_dates, start_date, end_date, username, last_modified_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
+      className,
+      day            || null,
+      time,
+      location       || null,
+      frequency      || 'none',
+      specific_dates || null,
+      start_date     || null,
+      end_date       || null,  // NEW
+      req.user.username,
+      req.user.username
+    ],
     (err, result) => {
       if (err) return res.status(500).send(err);
-      res.json({ id: result.insertId, className, day, time, location: location || null, frequency: frequency || 'none', specific_dates: specific_dates || null, start_date: start_date || null });
+      res.json({
+        id: result.insertId,
+        className, day, time,
+        location:       location       || null,
+        frequency:      frequency      || 'none',
+        specific_dates: specific_dates || null,
+        start_date:     start_date     || null,
+        end_date:       end_date       || null   // NEW
+      });
     }
   );
 });
@@ -219,10 +230,21 @@ app.post('/api/classes', sessionAuth, (req, res) => {
 /* UPDATE CLASS — Login required */
 app.put('/api/classes/:id', sessionAuth, (req, res) => {
   const id = req.params.id;
-  const { className, day, time, location, frequency, specific_dates, start_date } = req.body;
+  const { className, day, time, location, frequency, specific_dates, start_date, end_date } = req.body;
   db.query(
-    'UPDATE classes SET className = ?, day = ?, time = ?, location = ?, frequency = ?, specific_dates = ?, start_date = ?, last_modified_by = ? WHERE id = ?',
-    [className, day || null, time, location || null, frequency || 'none', specific_dates || null, start_date || null, req.user.username, id],
+    'UPDATE classes SET className = ?, day = ?, time = ?, location = ?, frequency = ?, specific_dates = ?, start_date = ?, end_date = ?, last_modified_by = ? WHERE id = ?',
+    [
+      className,
+      day            || null,
+      time,
+      location       || null,
+      frequency      || 'none',
+      specific_dates || null,
+      start_date     || null,
+      end_date       || null,  // NEW
+      req.user.username,
+      id
+    ],
     (err) => {
       if (err) return res.status(500).send(err);
       res.json({ message: 'Class updated' });
