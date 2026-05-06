@@ -111,7 +111,6 @@ function renderClasses(data) {
       });
       displayText += ` until ${formatted}`;
     }
-    displayText += ` (Last edited by ${cls.last_modified_by})`;
 
     span.textContent = displayText;
     li.appendChild(span);
