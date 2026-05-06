@@ -1,24 +1,20 @@
 const CLASSES_API = '/api/classes';
-const form = document.getElementById('classScheduleForm');
-const list = document.getElementById('classSchedule');
+const form        = document.getElementById('classScheduleForm');
+const list        = document.getElementById('classSchedule');
 
 /* =======================
-   GET LOGIN DETAILS
-   Checks localStorage for saved username/password.
-   If not found, asks the user to enter them.
+   GET AUTH HEADER
+   Reads the session token from localStorage
+   and returns it as a Bearer token header.
+   No more username/password sent with requests.
 ======================= */
 function getAuthHeader() {
-  let username = localStorage.getItem("username");
-  let password = localStorage.getItem("password");
-
-  if (!username || !password) {
-    username = prompt("Username:");
-    password = prompt("Password:");
-    localStorage.setItem("username", username);
-    localStorage.setItem("password", password);
+  const token = localStorage.getItem('token');
+  if (!token) {
+    window.location.href = 'login.html';
+    return null;
   }
-
-  return "Basic " + btoa(`${username}:${password}`);
+  return `Bearer ${token}`;
 }
 
 /* =======================
@@ -100,21 +96,18 @@ function renderClasses(data) {
   list.innerHTML = '';
 
   data.forEach(cls => {
-    const li = document.createElement('li');
+    const li   = document.createElement('li');
     const span = document.createElement('span');
 
     // Build display text
     let displayText = `${cls.day} - ${cls.time} : ${cls.className}`;
-    if (cls.location) displayText += ` @ ${cls.location}`;
-
-    // Show frequency info
-    if (cls.frequency === 'weekly')        displayText += ' (Weekly)';
+    if (cls.location)                  displayText += ` @ ${cls.location}`;
+    if (cls.frequency === 'weekly')    displayText += ' (Weekly)';
     else if (cls.frequency === 'monthly')  displayText += ' (Monthly)';
     else if (cls.frequency === 'specific') displayText += ` (Specific dates: ${cls.specific_dates})`;
-
     displayText += ` (Last edited by ${cls.last_modified_by})`;
-    span.textContent = displayText;
 
+    span.textContent = displayText;
     li.appendChild(span);
     list.appendChild(li);
 
@@ -142,7 +135,7 @@ function showContextMenu(e, li, cls) {
   `;
 
   document.body.appendChild(menu);
-  menu.style.top = `${e.pageY}px`;
+  menu.style.top  = `${e.pageY}px`;
   menu.style.left = `${e.pageX}px`;
 
   menu.querySelector('.ctx-edit').onclick = () => {
@@ -156,7 +149,7 @@ function showContextMenu(e, li, cls) {
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`${CLASSES_CLASSES_CLASSES_API}/${cls.id}`, {
+      const res = await fetch(`${CLASSES_API}/${cls.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': getAuthHeader() }
       });
@@ -181,16 +174,13 @@ function showContextMenu(e, li, cls) {
 function openInlineEdit(li, cls) {
   if (li.querySelector('.edit-form')) return;
 
-  const startDateValue     = cls.start_date     ? cls.start_date.split('T')[0]     : '';
-  const specificDatesValue = cls.specific_dates ? cls.specific_dates               : '';
-  const frequency          = cls.frequency      ? cls.frequency                    : 'none';
+  const startDateValue     = cls.start_date     ? cls.start_date.split('T')[0] : '';
+  const specificDatesValue = cls.specific_dates ? cls.specific_dates           : '';
+  const frequency          = cls.frequency      ? cls.frequency                : 'none';
 
   li.innerHTML = `
     <form class="edit-form">
-
       <input class="edit-className" value="${cls.className}" placeholder="Class Name" required />
-
-      <!-- Multi-day checkboxes -->
       <div class="day-checkboxes">
         <span class="day-label">Days:</span>
         <label><input type="checkbox" name="day" value="Monday"> Mon</label>
@@ -201,25 +191,19 @@ function openInlineEdit(li, cls) {
         <label><input type="checkbox" name="day" value="Saturday"> Sat</label>
         <label><input type="checkbox" name="day" value="Sunday"> Sun</label>
       </div>
-
       <input class="edit-time" type="time" value="${cls.time}" required />
       <input class="edit-location" type="text" value="${cls.location || ''}" placeholder="Location (optional)" />
       <input class="edit-start-date" type="date" value="${startDateValue}" required />
-
-      <!-- Frequency dropdown -->
       <select class="edit-frequency">
         <option value="none"     ${frequency === 'none'     ? 'selected' : ''}>Does not repeat</option>
         <option value="weekly"   ${frequency === 'weekly'   ? 'selected' : ''}>Repeats weekly</option>
         <option value="monthly"  ${frequency === 'monthly'  ? 'selected' : ''}>Repeats monthly</option>
         <option value="specific" ${frequency === 'specific' ? 'selected' : ''}>Specific dates</option>
       </select>
-
-      <!-- Specific dates input — shown only when frequency is "specific" -->
       <div class="edit-specific-wrapper" style="display: ${frequency === 'specific' ? 'block' : 'none'};">
         <input class="edit-specific-dates" type="text" value="${specificDatesValue}" placeholder="e.g. 2026-05-01, 2026-05-15" />
         <small>Enter dates separated by commas (YYYY-MM-DD)</small>
       </div>
-
       <button type="submit">Save</button>
       <button type="button" class="cancel-btn">Cancel</button>
     </form>
@@ -230,8 +214,8 @@ function openInlineEdit(li, cls) {
 
   // Show/hide specific dates field when frequency changes
   li.querySelector('.edit-frequency').onchange = function () {
-    const wrapper = li.querySelector('.edit-specific-wrapper');
-    wrapper.style.display = this.value === 'specific' ? 'block' : 'none';
+    li.querySelector('.edit-specific-wrapper').style.display =
+      this.value === 'specific' ? 'block' : 'none';
   };
 
   // Cancel goes back to the normal list
@@ -258,12 +242,13 @@ function openInlineEdit(li, cls) {
       location:       li.querySelector('.edit-location').value,
       start_date:     li.querySelector('.edit-start-date').value,
       frequency:      li.querySelector('.edit-frequency').value,
-      specific_dates: li.querySelector('.edit-specific-dates') ?
-                      li.querySelector('.edit-specific-dates').value : null
+      specific_dates: li.querySelector('.edit-specific-dates')
+                      ? li.querySelector('.edit-specific-dates').value
+                      : null
     };
 
     try {
-      const res = await fetch(`${CLASSES_CLASSES_CLASSES_API}/${cls.id}`, {
+      const res = await fetch(`${CLASSES_API}/${cls.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -288,7 +273,6 @@ function openInlineEdit(li, cls) {
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  // Collect checked days from the form
   const day = getSelectedDays(form);
   if (!day) {
     alert('Please select at least one day.');
@@ -305,7 +289,7 @@ form.addEventListener('submit', async (e) => {
     : null;
 
   try {
-    const res = await fetch(CLASSES_CLASSES_CLASSES_API, {
+    const res = await fetch(CLASSES_API, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -315,7 +299,6 @@ form.addEventListener('submit', async (e) => {
     });
     if (!res.ok) throw new Error('Failed to create class');
     form.reset();
-    // Reset specific dates visibility after form reset
     document.getElementById('specificDatesWrapper').style.display = 'none';
     loadClasses();
     showNotification("Class Added", `${className} was successfully added`);
@@ -330,4 +313,4 @@ form.addEventListener('submit', async (e) => {
 ======================= */
 requestNotificationPermission();
 loadClasses();
-setInterval(loadClasses, 5000); // Refresh every 5 seconds
+setInterval(loadClasses, 5000);
