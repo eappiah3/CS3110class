@@ -1,4 +1,4 @@
-const API = '/api/classes';
+const CLASSES_API = '/api/classes';
 const form = document.getElementById('classScheduleForm');
 const list = document.getElementById('classSchedule');
 
@@ -79,7 +79,7 @@ async function loadClasses() {
       renderClasses(JSON.parse(cached));
     }
 
-    const res = await fetch(API);
+    const res = await fetch(CLASSES_API);
     if (!res.ok) throw new Error('Failed to fetch classes');
     const data = await res.json();
 
@@ -156,7 +156,7 @@ function showContextMenu(e, li, cls) {
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`${API}/${cls.id}`, {
+      const res = await fetch(`${CLASSES_CLASSES_CLASSES_API}/${cls.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': getAuthHeader() }
       });
@@ -263,7 +263,7 @@ function openInlineEdit(li, cls) {
     };
 
     try {
-      const res = await fetch(`${API}/${cls.id}`, {
+      const res = await fetch(`${CLASSES_CLASSES_CLASSES_API}/${cls.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -305,7 +305,7 @@ form.addEventListener('submit', async (e) => {
     : null;
 
   try {
-    const res = await fetch(API, {
+    const res = await fetch(CLASSES_CLASSES_CLASSES_API, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
