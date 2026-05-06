@@ -259,30 +259,57 @@ li span {
 /* =======================
    TABS
 ======================= */
+/* =======================
+   TABS (FILE FOLDER STYLE)
+======================= */
 .tabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
+  gap: 4px;
+  margin-bottom: 0;
+  align-items: flex-end;
 }
 
 .tab-btn {
   font-size: 14px;
   font-weight: 600;
-  padding: 9px 20px;
+  padding: 8px 24px;
   border: 1px solid #c7c3f5;
-  border-radius: 8px;
-  background: #f5f4ff;
-  color: #534ab7;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  background: #d4d2f0;
+  color: #7c73e6;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
+  position: relative;
+  top: 1px;
+  /* Inactive tabs are shorter so active tab stands taller */
+  height: 38px;
 }
 
 .tab-btn:hover {
-  background: #ede9ff;
+  background: #e4e2f8;
+  color: #534ab7;
 }
 
 .tab-btn.active {
-  background: #534ab7;
-  color: #ffffff;
-  border-color: #534ab7;
+  background: #ffffff;
+  color: #1e1b4b;
+  border-color: #c7c3f5;
+  border-bottom: 1px solid #ffffff;
+  z-index: 1;
+  /* Active tab is taller so it looks like it's in front */
+  height: 44px;
+}
+
+/* =======================
+   TAB CONTENT PANEL
+======================= */
+
+.tab-content {
+  background: #ffffff;
+  border: 1px solid #c7c3f5;
+  border-radius: 0 10px 10px 10px;
+  padding: 24px;
+  position: relative;
+  z-index: 0;
 }
