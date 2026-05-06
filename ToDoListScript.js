@@ -112,7 +112,7 @@ function addTodoToDOM(todo) {
   /* =======================
      SINGLE CLICK — OPEN EDIT MODAL
   ======================= */
-  span.onclick = () => openTodoEditModal(todo, li);
+  span.onclick = () => openToDoEditMode(todo, li);
 
   /* =======================
      MARK COMPLETE
@@ -170,7 +170,7 @@ function addTodoToDOM(todo) {
    Opens a popup pre-filled with the
    task details so the user can edit them.
 ======================= */
-function openTodoEditModal(todo, li) {
+function openToDoEditMode(todo, li) {
   document.querySelectorAll('.cal-modal').forEach(m => m.remove());
 
   const dueDate = todo.due_date ? todo.due_date.split('T')[0] : '';
@@ -256,4 +256,4 @@ function openTodoEditModal(todo, li) {
    START THE APP
 ======================= */
 loadTodos();
-setInterval(loadTodos, 5000);
+setInterval(loadTodos, 30000);
