@@ -166,7 +166,7 @@ function openClassEditModal(cls) {
         <input class="ec-location" type="text" value="${cls.location || ''}" placeholder="Location (optional)" />
 
         <label style="font-size: 13px; color: #6b6b8a;">
-          Start Date
+          Date
           <input class="ec-start-date" type="date" value="${startDate}" required />
         </label>
 
