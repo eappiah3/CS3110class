@@ -27,7 +27,7 @@
       <!-- TAB BUTTONS -->
       <div class="tabs">
         <button class="tab-btn active" onclick="showTab('todo', this)">To-Do List</button>
-        <button class="tab-btn" onclick="showTab('schedule', this)">Class Schedule</button>
+        <button class="tab-btn" onclick="showTab('schedule', this)">Schedule</button>
         <button class="tab-btn" onclick="showTab('calendar', this)">Calendar</button>
       </div>
 
@@ -35,38 +35,56 @@
       <div id="todo" class="tab-content">
         <form id="todoForm">
           <input type="text" id="input" placeholder="Add Task" required>
-          <!-- NEW: optional due date for the task -->
+          <!-- Optional due date for the task -->
           <input type="date" id="due_date" title="Due Date (optional)">
           <button type="submit">Add To List</button>
         </form>
         <ul id="todoList"></ul>
       </div>
 
-      <!-- CLASS SCHEDULE TAB -->
+      <!-- SCHEDULE TAB -->
       <div id="schedule" class="tab-content" style="display: none;">
         <form id="classScheduleForm">
+
+          <!-- Class name -->
           <input type="text" id="className" placeholder="Class Name" required>
-          <select id="day" required>
-            <option value="" disabled selected>Weekday</option>
-            <option>Monday</option>
-            <option>Tuesday</option>
-            <option>Wednesday</option>
-            <option>Thursday</option>
-            <option>Friday</option>
-            <option>Saturday</option>
-            <option>Sunday</option>
-          </select>
+
+          <!-- Multi-day checkboxes -->
+          <div class="day-checkboxes">
+            <span class="day-label">Days:</span>
+            <label><input type="checkbox" name="day" value="Sunday"> Sunday</label>
+            <label><input type="checkbox" name="day" value="Monday"> Monday</label>
+            <label><input type="checkbox" name="day" value="Tuesday"> Tueuesday</label>
+            <label><input type="checkbox" name="day" value="Wednesday"> Wednesday</label>
+            <label><input type="checkbox" name="day" value="Thursday"> Thursday</label>
+            <label><input type="checkbox" name="day" value="Friday"> Friday</label>
+            <label><input type="checkbox" name="day" value="Saturday"> Saturday</label>
+          </div>
+
+          <!-- Time and location -->
           <input type="time" id="time" required>
-          <!-- NEW: optional location -->
           <input type="text" id="location" placeholder="Location (optional)">
-          <!-- NEW: start date for calendar -->
+
+          <!-- Start date -->
           <input type="date" id="start_date" title="Start Date" required>
-          <!-- NEW: recurring weekly checkbox -->
-          <label class="recurring-label">
-            <input type="checkbox" id="recurring"> Repeats weekly
-          </label>
+
+          <!-- Frequency dropdown -->
+          <select id="frequency" onchange="toggleSpecificDates()">
+            <option value="none">Does not repeat</option>
+            <option value="weekly">Repeats weekly</option>
+            <option value="monthly">Repeats monthly</option>
+            <option value="specific">Specific dates</option>
+          </select>
+
+          <!-- Specific dates input — only shown when "Specific dates" is selected -->
+          <div id="specificDatesWrapper" style="display: none;">
+            <input type="text" id="specific_dates" placeholder="e.g. 2026-05-01, 2026-05-15">
+            <small>Enter dates separated by commas (YYYY-MM-DD)</small>
+          </div>
+
           <button type="submit">Add Class</button>
         </form>
+
         <p style="font-size: 13px; color: #6b6b8a; margin-bottom: 10px;">
           Double-click an item to edit or delete
         </p>
@@ -100,6 +118,13 @@
         if (tabName === 'calendar' && window.myCalendar) {
           window.myCalendar.render();
         }
+      }
+
+      // Show or hide the specific dates input based on frequency selection
+      function toggleSpecificDates() {
+        const frequency = document.getElementById('frequency').value;
+        const wrapper = document.getElementById('specificDatesWrapper');
+        wrapper.style.display = frequency === 'specific' ? 'block' : 'none';
       }
 
       function logout() {
