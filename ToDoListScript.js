@@ -70,7 +70,10 @@ form.addEventListener('submit', async function (event) {
 async function loadTodos() {
   try {
     list.innerHTML = '<li>Loading...</li>';
-    const res = await fetch(TODO_API);
+    const res = await fetch(TODO_API, {
+      headers: { 'Authorization': getAuthHeader() }
+    });
+     
     if (!res.ok) {
       const msg = await res.text();
       console.error("LOAD ERROR:", res.status, msg);
