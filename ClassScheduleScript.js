@@ -43,6 +43,31 @@ function showNotification(title, body) {
 }
 
 /* =======================
+   GET SELECTED DAYS
+   Reads the day checkboxes and returns
+   a comma separated string of checked days
+   e.g. "Monday,Wednesday,Friday"
+======================= */
+function getSelectedDays(container) {
+  const checked = container.querySelectorAll('input[name="day"]:checked');
+  return Array.from(checked).map(cb => cb.value).join(',');
+}
+
+/* =======================
+   CHECK DAYS IN CHECKBOXES
+   Given a comma separated string of days,
+   checks the matching checkboxes in a container.
+   Used when pre-filling the edit form.
+======================= */
+function checkDays(container, dayString) {
+  if (!dayString) return;
+  const days = dayString.split(',');
+  container.querySelectorAll('input[name="day"]').forEach(cb => {
+    cb.checked = days.includes(cb.value);
+  });
+}
+
+/* =======================
    LOAD CLASSES FROM SERVER
    Shows cached data first for speed,
    then fetches fresh data from the server.
@@ -78,12 +103,16 @@ function renderClasses(data) {
     const li = document.createElement('li');
     const span = document.createElement('span');
 
-    // Build the display text — only show location if it exists
+    // Build display text
     let displayText = `${cls.day} - ${cls.time} : ${cls.className}`;
     if (cls.location) displayText += ` @ ${cls.location}`;
-    if (cls.recurring) displayText += ' (Weekly)';
-    displayText += ` (Last edited by ${cls.last_modified_by})`;
 
+    // Show frequency info
+    if (cls.frequency === 'weekly')        displayText += ' (Weekly)';
+    else if (cls.frequency === 'monthly')  displayText += ' (Monthly)';
+    else if (cls.frequency === 'specific') displayText += ` (Specific dates: ${cls.specific_dates})`;
+
+    displayText += ` (Last edited by ${cls.last_modified_by})`;
     span.textContent = displayText;
 
     li.appendChild(span);
@@ -103,10 +132,8 @@ function renderClasses(data) {
    giving them the option to edit or delete the class.
 ======================= */
 function showContextMenu(e, li, cls) {
-  // Remove any menu that's already open
   document.querySelectorAll('.context-menu').forEach(m => m.remove());
 
-  // Build the menu
   const menu = document.createElement('div');
   menu.className = 'context-menu';
   menu.innerHTML = `
@@ -114,18 +141,15 @@ function showContextMenu(e, li, cls) {
     <button class="ctx-delete">Delete</button>
   `;
 
-  // Place the menu where the user clicked
   document.body.appendChild(menu);
   menu.style.top = `${e.pageY}px`;
   menu.style.left = `${e.pageX}px`;
 
-  // Edit button opens the inline edit form
   menu.querySelector('.ctx-edit').onclick = () => {
     menu.remove();
     openInlineEdit(li, cls);
   };
 
-  // Delete button removes the class
   menu.querySelector('.ctx-delete').onclick = async () => {
     menu.remove();
     const confirmDelete = confirm('Delete this class?');
@@ -144,7 +168,6 @@ function showContextMenu(e, li, cls) {
     }
   };
 
-  // Close the menu if the user clicks anywhere else
   setTimeout(() => {
     document.addEventListener('click', () => menu.remove(), { once: true });
   }, 0);
@@ -156,29 +179,60 @@ function showContextMenu(e, li, cls) {
    pre-filled with the current class details.
 ======================= */
 function openInlineEdit(li, cls) {
-  // Don't open a second form if one is already open
   if (li.querySelector('.edit-form')) return;
 
-  // Format the start_date for the date input (YYYY-MM-DD)
-  const startDateValue = cls.start_date ? cls.start_date.split('T')[0] : '';
+  const startDateValue     = cls.start_date     ? cls.start_date.split('T')[0]     : '';
+  const specificDatesValue = cls.specific_dates ? cls.specific_dates               : '';
+  const frequency          = cls.frequency      ? cls.frequency                    : 'none';
 
   li.innerHTML = `
     <form class="edit-form">
+
       <input class="edit-className" value="${cls.className}" placeholder="Class Name" required />
-      <select class="edit-day">
-        ${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
-          .map(d => `<option ${cls.day === d ? 'selected' : ''}>${d}</option>`).join('')}
-      </select>
+
+      <!-- Multi-day checkboxes -->
+      <div class="day-checkboxes">
+        <span class="day-label">Days:</span>
+        <label><input type="checkbox" name="day" value="Monday"> Mon</label>
+        <label><input type="checkbox" name="day" value="Tuesday"> Tue</label>
+        <label><input type="checkbox" name="day" value="Wednesday"> Wed</label>
+        <label><input type="checkbox" name="day" value="Thursday"> Thu</label>
+        <label><input type="checkbox" name="day" value="Friday"> Fri</label>
+        <label><input type="checkbox" name="day" value="Saturday"> Sat</label>
+        <label><input type="checkbox" name="day" value="Sunday"> Sun</label>
+      </div>
+
       <input class="edit-time" type="time" value="${cls.time}" required />
       <input class="edit-location" type="text" value="${cls.location || ''}" placeholder="Location (optional)" />
       <input class="edit-start-date" type="date" value="${startDateValue}" required />
-      <label class="recurring-label">
-        <input class="edit-recurring" type="checkbox" ${cls.recurring ? 'checked' : ''}> Repeats weekly
-      </label>
+
+      <!-- Frequency dropdown -->
+      <select class="edit-frequency">
+        <option value="none"     ${frequency === 'none'     ? 'selected' : ''}>Does not repeat</option>
+        <option value="weekly"   ${frequency === 'weekly'   ? 'selected' : ''}>Repeats weekly</option>
+        <option value="monthly"  ${frequency === 'monthly'  ? 'selected' : ''}>Repeats monthly</option>
+        <option value="specific" ${frequency === 'specific' ? 'selected' : ''}>Specific dates</option>
+      </select>
+
+      <!-- Specific dates input — shown only when frequency is "specific" -->
+      <div class="edit-specific-wrapper" style="display: ${frequency === 'specific' ? 'block' : 'none'};">
+        <input class="edit-specific-dates" type="text" value="${specificDatesValue}" placeholder="e.g. 2026-05-01, 2026-05-15" />
+        <small>Enter dates separated by commas (YYYY-MM-DD)</small>
+      </div>
+
       <button type="submit">Save</button>
       <button type="button" class="cancel-btn">Cancel</button>
     </form>
   `;
+
+  // Pre-check the days that were saved
+  checkDays(li, cls.day);
+
+  // Show/hide specific dates field when frequency changes
+  li.querySelector('.edit-frequency').onchange = function () {
+    const wrapper = li.querySelector('.edit-specific-wrapper');
+    wrapper.style.display = this.value === 'specific' ? 'block' : 'none';
+  };
 
   // Cancel goes back to the normal list
   li.querySelector('.cancel-btn').onclick = (e) => {
@@ -191,13 +245,21 @@ function openInlineEdit(li, cls) {
     e.preventDefault();
     e.stopPropagation();
 
+    const selectedDays = getSelectedDays(li);
+    if (!selectedDays) {
+      alert('Please select at least one day.');
+      return;
+    }
+
     const updated = {
-      className:  li.querySelector('.edit-className').value,
-      day:        li.querySelector('.edit-day').value,
-      time:       li.querySelector('.edit-time').value,
-      location:   li.querySelector('.edit-location').value,
-      start_date: li.querySelector('.edit-start-date').value,
-      recurring:  li.querySelector('.edit-recurring').checked
+      className:      li.querySelector('.edit-className').value,
+      day:            selectedDays,
+      time:           li.querySelector('.edit-time').value,
+      location:       li.querySelector('.edit-location').value,
+      start_date:     li.querySelector('.edit-start-date').value,
+      frequency:      li.querySelector('.edit-frequency').value,
+      specific_dates: li.querySelector('.edit-specific-dates') ?
+                      li.querySelector('.edit-specific-dates').value : null
     };
 
     try {
@@ -226,12 +288,21 @@ function openInlineEdit(li, cls) {
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const className  = document.getElementById('className').value;
-  const day        = document.getElementById('day').value;
-  const time       = document.getElementById('time').value;
-  const location   = document.getElementById('location').value;
-  const start_date = document.getElementById('start_date').value;
-  const recurring  = document.getElementById('recurring').checked;
+  // Collect checked days from the form
+  const day = getSelectedDays(form);
+  if (!day) {
+    alert('Please select at least one day.');
+    return;
+  }
+
+  const className      = document.getElementById('className').value;
+  const time           = document.getElementById('time').value;
+  const location       = document.getElementById('location').value;
+  const start_date     = document.getElementById('start_date').value;
+  const frequency      = document.getElementById('frequency').value;
+  const specific_dates = frequency === 'specific'
+    ? document.getElementById('specific_dates').value
+    : null;
 
   try {
     const res = await fetch(API, {
@@ -240,10 +311,12 @@ form.addEventListener('submit', async (e) => {
         'Content-Type': 'application/json',
         'Authorization': getAuthHeader()
       },
-      body: JSON.stringify({ className, day, time, location, start_date, recurring })
+      body: JSON.stringify({ className, day, time, location, start_date, frequency, specific_dates })
     });
     if (!res.ok) throw new Error('Failed to create class');
     form.reset();
+    // Reset specific dates visibility after form reset
+    document.getElementById('specificDatesWrapper').style.display = 'none';
     loadClasses();
     showNotification("Class Added", `${className} was successfully added`);
   } catch (err) {
