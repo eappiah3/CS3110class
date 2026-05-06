@@ -4,7 +4,9 @@ const list = document.getElementById('todoList');
 const API = 'https://eacs3110.mooo.com/api/todos';
 
 /* =======================
-   AUTH HELPER (CACHED)
+   AUTH HELPER
+   Checks localStorage for saved username/password.
+   If not found, asks the user to enter them.
 ======================= */
 function getAuthHeader() {
   let username = localStorage.getItem("username");
@@ -20,14 +22,20 @@ function getAuthHeader() {
 
 /* =======================
    CREATE TODO
+   Runs when the form is submitted.
+   Sends the task text and optional due date to the server.
 ======================= */
 form.addEventListener('submit', async function (event) {
   event.preventDefault();
+
   const text = input.value.trim();
+  const due_date = document.getElementById('due_date').value || null;
+
   if (!text) {
     alert("Todo cannot be empty");
     return;
   }
+
   try {
     form.querySelector('button').disabled = true;
     const res = await fetch(API, {
@@ -36,7 +44,7 @@ form.addEventListener('submit', async function (event) {
         'Content-Type': 'application/json',
         'Authorization': getAuthHeader()
       },
-      body: JSON.stringify({ text })
+      body: JSON.stringify({ text, due_date })
     });
 
     if (!res.ok) {
@@ -48,6 +56,7 @@ form.addEventListener('submit', async function (event) {
     const newTodo = await res.json();
     addTodoToDOM(newTodo);
     input.value = '';
+    document.getElementById('due_date').value = '';
   } catch (err) {
     console.error("FRONTEND ERROR:", err);
     alert('Could not add todo: ' + err.message);
@@ -58,6 +67,7 @@ form.addEventListener('submit', async function (event) {
 
 /* =======================
    LOAD TODOS
+   Fetches all todos from the server and displays them.
 ======================= */
 async function loadTodos() {
   try {
@@ -79,6 +89,9 @@ async function loadTodos() {
 
 /* =======================
    RENDER TODO
+   Builds a single list item for a todo.
+   Shows the task text, due date if it exists,
+   a checkbox to mark complete, and double-click to delete.
 ======================= */
 function addTodoToDOM(todo) {
   const li = document.createElement('li');
@@ -88,9 +101,23 @@ function addTodoToDOM(todo) {
   checkbox.checked = todo.completed;
 
   const span = document.createElement('span');
-  span.textContent = `${todo.text} (Last edited by ${todo.last_modified_by})`;
 
-  /* UPDATE */
+  // Build display text — only show due date if it exists
+  let displayText = `${todo.text}`;
+  if (todo.due_date) {
+    // Format the date nicely e.g. "May 10, 2026"
+    const formatted = new Date(todo.due_date).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
+    });
+    displayText += ` — Due: ${formatted}`;
+  }
+  displayText += ` (Last edited by ${todo.last_modified_by})`;
+  span.textContent = displayText;
+
+  /* =======================
+     MARK COMPLETE
+     Clicking the checkbox updates the todo on the server.
+  ======================= */
   checkbox.onchange = async () => {
     try {
       const res = await fetch(`${API}/${todo.id}`, {
@@ -101,7 +128,8 @@ function addTodoToDOM(todo) {
         },
         body: JSON.stringify({
           text: todo.text,
-          completed: checkbox.checked
+          completed: checkbox.checked,
+          due_date: todo.due_date || null
         })
       });
       if (!res.ok) {
@@ -117,7 +145,10 @@ function addTodoToDOM(todo) {
     }
   };
 
-  /* DELETE */
+  /* =======================
+     DELETE ON DOUBLE CLICK
+     Double-clicking removes the todo from the server.
+  ======================= */
   li.ondblclick = async () => {
     if (!confirm('Delete this to do list item?')) return;
     try {
@@ -148,5 +179,8 @@ function addTodoToDOM(todo) {
   list.appendChild(li);
 }
 
+/* =======================
+   START THE APP
+======================= */
 loadTodos();
-setInterval(loadTodos, 5000);
+setInterval(loadTodos, 5000); // Refresh every 5 seconds
