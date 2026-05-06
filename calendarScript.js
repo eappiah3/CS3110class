@@ -1,4 +1,4 @@
-const TODOS_API = 'https://eacs3110.mooo.com/api/todos';
+const TODOS_API   = 'https://eacs3110.mooo.com/api/todos';
 const CLASSES_API = '/api/classes';
 
 /* =======================
@@ -22,11 +22,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Build the calendar
   const calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: 'dayGridMonth',   // Start with month view
+    initialView: 'dayGridMonth',
     headerToolbar: {
       left:   'prev,next today',
       center: 'title',
-      right:  'dayGridMonth,timeGridWeek,timeGridDay'  // View switcher
+      right:  'dayGridMonth,timeGridWeek,timeGridDay'
     },
     events: allEvents,
 
@@ -77,56 +77,166 @@ async function fetchTodos() {
 }
 
 /* =======================
+   DAY NAME TO NUMBER
+   FullCalendar uses numbers for days of the week.
+   0 = Sunday, 1 = Monday, 2 = Tuesday, etc.
+======================= */
+const dayMap = {
+  'Sunday': 0, 'Monday': 1, 'Tuesday': 2,
+  'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6
+};
+
+/* =======================
    BUILD CLASS EVENTS
-   Converts each class into a FullCalendar event.
-   If the class is recurring, it repeats every week
-   from the start date. Otherwise it shows just once.
+   Converts each class into one or more
+   FullCalendar events based on its frequency
+   and which days it occurs on.
 ======================= */
 function buildClassEvents(classes) {
   const events = [];
 
-  // Map day names to numbers FullCalendar understands
-  // 0 = Sunday, 1 = Monday, etc.
-  const dayMap = {
-    'Sunday': 0, 'Monday': 1, 'Tuesday': 2,
-    'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6
-  };
-
   classes.forEach(cls => {
     if (!cls.start_date) return; // Skip classes with no start date
 
-    if (cls.recurring) {
-      // Recurring event — repeats every week on the same day
-      events.push({
-        id:    `class-${cls.id}`,
-        title: cls.location ? `${cls.className} @ ${cls.location}` : cls.className,
-        startTime: cls.time,
-        daysOfWeek: [dayMap[cls.day]],
-        startRecur: cls.start_date,
-        backgroundColor: '#534ab7',
-        borderColor: '#3c3489',
-        extendedProps: {
-          type: 'class',
-          data: cls
-        }
+    const startDate = cls.start_date.split('T')[0];
+
+    // A class can have multiple days e.g. "Monday,Wednesday,Friday"
+    // Split them into an array so we can handle each one
+    const days = cls.day ? cls.day.split(',').map(d => d.trim()) : [];
+
+    if (cls.frequency === 'weekly') {
+      /* ---------------------------------
+         WEEKLY RECURRING
+         Creates one recurring event per day
+         so e.g. MWF gets three recurring events.
+      --------------------------------- */
+      days.forEach(day => {
+        events.push({
+          id:    `class-${cls.id}-${day}`,
+          title: buildClassTitle(cls),
+          startTime:  cls.time,
+          daysOfWeek: [dayMap[day]],
+          startRecur: startDate,
+          backgroundColor: '#534ab7',
+          borderColor:     '#3c3489',
+          extendedProps: { type: 'class', data: cls }
+        });
       });
+
+    } else if (cls.frequency === 'monthly') {
+      /* ---------------------------------
+         MONTHLY RECURRING
+         FullCalendar doesn't have a built-in monthly
+         recurrence by day name, so we manually generate
+         dates for the next 12 months and add each as
+         a one-time event.
+      --------------------------------- */
+      days.forEach(day => {
+        const monthlyDates = getMonthlyDates(startDate, dayMap[day], 12);
+        monthlyDates.forEach(date => {
+          events.push({
+            id:    `class-${cls.id}-${day}-${date}`,
+            title: buildClassTitle(cls),
+            start: `${date}T${cls.time}`,
+            backgroundColor: '#534ab7',
+            borderColor:     '#3c3489',
+            extendedProps: { type: 'class', data: cls }
+          });
+        });
+      });
+
+    } else if (cls.frequency === 'specific' && cls.specific_dates) {
+      /* ---------------------------------
+         SPECIFIC DATES
+         Each date in the specific_dates string
+         gets its own event on the calendar.
+      --------------------------------- */
+      const specificDates = cls.specific_dates.split(',').map(d => d.trim());
+      specificDates.forEach(date => {
+        events.push({
+          id:    `class-${cls.id}-${date}`,
+          title: buildClassTitle(cls),
+          start: `${date}T${cls.time}`,
+          backgroundColor: '#534ab7',
+          borderColor:     '#3c3489',
+          extendedProps: { type: 'class', data: cls }
+        });
+      });
+
     } else {
-      // One-time event — shows on the start date only
-      events.push({
-        id:    `class-${cls.id}`,
-        title: cls.location ? `${cls.className} @ ${cls.location}` : cls.className,
-        start: `${cls.start_date.split('T')[0]}T${cls.time}`,
-        backgroundColor: '#534ab7',
-        borderColor: '#3c3489',
-        extendedProps: {
-          type: 'class',
-          data: cls
-        }
-      });
+      /* ---------------------------------
+         NO REPEAT — ONE TIME EVENT
+         Shows once on the start date.
+         If multiple days are selected,
+         each gets its own one-time event.
+      --------------------------------- */
+      if (days.length > 0) {
+        days.forEach(day => {
+          events.push({
+            id:    `class-${cls.id}-${day}`,
+            title: buildClassTitle(cls),
+            start: `${startDate}T${cls.time}`,
+            backgroundColor: '#534ab7',
+            borderColor:     '#3c3489',
+            extendedProps: { type: 'class', data: cls }
+          });
+        });
+      } else {
+        // Fallback: no days selected, just show on start date
+        events.push({
+          id:    `class-${cls.id}`,
+          title: buildClassTitle(cls),
+          start: `${startDate}T${cls.time}`,
+          backgroundColor: '#534ab7',
+          borderColor:     '#3c3489',
+          extendedProps: { type: 'class', data: cls }
+        });
+      }
     }
   });
 
   return events;
+}
+
+/* =======================
+   BUILD CLASS TITLE
+   Builds the event title shown on the calendar.
+   Includes location if it exists.
+======================= */
+function buildClassTitle(cls) {
+  return cls.location
+    ? `${cls.className} @ ${cls.location}`
+    : cls.className;
+}
+
+/* =======================
+   GET MONTHLY DATES
+   Given a start date and a day of week number,
+   finds the matching day in each of the next N months.
+   e.g. "every first Monday for 12 months"
+   Returns an array of date strings like ["2026-05-05", ...]
+======================= */
+function getMonthlyDates(startDate, dayOfWeek, months) {
+  const dates = [];
+  const start = new Date(startDate);
+
+  for (let i = 0; i < months; i++) {
+    // Go to the same month offset
+    const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
+
+    // Find the first occurrence of the target day in that month
+    while (d.getDay() !== dayOfWeek) {
+      d.setDate(d.getDate() + 1);
+    }
+
+    // Format as YYYY-MM-DD
+    const yyyy = d.getFullYear();
+    const mm   = String(d.getMonth() + 1).padStart(2, '0');
+    const dd   = String(d.getDate()).padStart(2, '0');
+    dates.push(`${yyyy}-${mm}-${dd}`);
+  }
+
+  return dates;
 }
 
 /* =======================
@@ -137,7 +247,7 @@ function buildClassEvents(classes) {
 ======================= */
 function buildTodoEvents(todos) {
   return todos
-    .filter(todo => todo.due_date) // Only include todos with a due date
+    .filter(todo => todo.due_date)
     .map(todo => ({
       id:    `todo-${todo.id}`,
       title: todo.completed ? `✓ ${todo.text}` : todo.text,
@@ -145,10 +255,7 @@ function buildTodoEvents(todos) {
       allDay: true,
       backgroundColor: todo.completed ? '#888' : '#22a06b',
       borderColor:     todo.completed ? '#666' : '#1a7d52',
-      extendedProps: {
-        type: 'todo',
-        data: todo
-      }
+      extendedProps: { type: 'todo', data: todo }
     }));
 }
 
@@ -158,7 +265,6 @@ function buildTodoEvents(todos) {
    show a popup to edit or delete it.
 ======================= */
 function openEditModal(event) {
-  // Remove any existing modal
   document.querySelectorAll('.cal-modal').forEach(m => m.remove());
 
   const type = event.extendedProps.type;
@@ -168,24 +274,47 @@ function openEditModal(event) {
   modal.className = 'cal-modal';
 
   if (type === 'class') {
-    // Format start date for input
-    const startDate = data.start_date ? data.start_date.split('T')[0] : '';
+    const startDate      = data.start_date     ? data.start_date.split('T')[0] : '';
+    const specificDates  = data.specific_dates ? data.specific_dates           : '';
+    const frequency      = data.frequency      ? data.frequency                : 'none';
+
+    // Build day checkboxes with current days pre-checked
+    const savedDays = data.day ? data.day.split(',').map(d => d.trim()) : [];
+    const dayCheckboxes = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+      .map(d => `
+        <label>
+          <input type="checkbox" name="day" value="${d}" ${savedDays.includes(d) ? 'checked' : ''}>
+          ${d.slice(0, 3)}
+        </label>`)
+      .join('');
 
     modal.innerHTML = `
       <div class="cal-modal-box">
         <h3>Edit Class</h3>
         <form id="editClassForm">
           <input class="ec-className" value="${data.className}" placeholder="Class Name" required />
-          <select class="ec-day">
-            ${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
-              .map(d => `<option ${data.day === d ? 'selected' : ''}>${d}</option>`).join('')}
-          </select>
+
+          <div class="day-checkboxes">
+            <span class="day-label">Days:</span>
+            ${dayCheckboxes}
+          </div>
+
           <input class="ec-time" type="time" value="${data.time}" required />
           <input class="ec-location" type="text" value="${data.location || ''}" placeholder="Location (optional)" />
           <input class="ec-start-date" type="date" value="${startDate}" required />
-          <label class="recurring-label">
-            <input class="ec-recurring" type="checkbox" ${data.recurring ? 'checked' : ''}> Repeats weekly
-          </label>
+
+          <select class="ec-frequency">
+            <option value="none"     ${frequency === 'none'     ? 'selected' : ''}>Does not repeat</option>
+            <option value="weekly"   ${frequency === 'weekly'   ? 'selected' : ''}>Repeats weekly</option>
+            <option value="monthly"  ${frequency === 'monthly'  ? 'selected' : ''}>Repeats monthly</option>
+            <option value="specific" ${frequency === 'specific' ? 'selected' : ''}>Specific dates</option>
+          </select>
+
+          <div class="ec-specific-wrapper" style="display: ${frequency === 'specific' ? 'block' : 'none'};">
+            <input class="ec-specific-dates" type="text" value="${specificDates}" placeholder="e.g. 2026-05-01, 2026-05-15" />
+            <small>Enter dates separated by commas (YYYY-MM-DD)</small>
+          </div>
+
           <div class="cal-modal-btns">
             <button type="submit">Save</button>
             <button type="button" class="delete-btn">Delete</button>
@@ -195,10 +324,16 @@ function openEditModal(event) {
       </div>
     `;
 
-    // Cancel — close the modal
+    // Show/hide specific dates when frequency changes
+    modal.querySelector('.ec-frequency').onchange = function () {
+      modal.querySelector('.ec-specific-wrapper').style.display =
+        this.value === 'specific' ? 'block' : 'none';
+    };
+
+    // Cancel
     modal.querySelector('.cancel-btn').onclick = () => modal.remove();
 
-    // Delete — remove the class
+    // Delete
     modal.querySelector('.delete-btn').onclick = async () => {
       if (!confirm('Delete this class?')) return;
       try {
@@ -215,17 +350,28 @@ function openEditModal(event) {
       }
     };
 
-    // Save — update the class
+    // Save
     modal.querySelector('#editClassForm').onsubmit = async (e) => {
       e.preventDefault();
+
+      // Collect checked days
+      const checked = modal.querySelectorAll('input[name="day"]:checked');
+      const day = Array.from(checked).map(cb => cb.value).join(',');
+      if (!day) { alert('Please select at least one day.'); return; }
+
+      const freq = modal.querySelector('.ec-frequency').value;
       const updated = {
-        className:  modal.querySelector('.ec-className').value,
-        day:        modal.querySelector('.ec-day').value,
-        time:       modal.querySelector('.ec-time').value,
-        location:   modal.querySelector('.ec-location').value,
-        start_date: modal.querySelector('.ec-start-date').value,
-        recurring:  modal.querySelector('.ec-recurring').checked
+        className:      modal.querySelector('.ec-className').value,
+        day,
+        time:           modal.querySelector('.ec-time').value,
+        location:       modal.querySelector('.ec-location').value,
+        start_date:     modal.querySelector('.ec-start-date').value,
+        frequency:      freq,
+        specific_dates: freq === 'specific'
+          ? modal.querySelector('.ec-specific-dates').value
+          : null
       };
+
       try {
         const res = await fetch(`${CLASSES_API}/${data.id}`, {
           method: 'PUT',
@@ -245,7 +391,6 @@ function openEditModal(event) {
     };
 
   } else if (type === 'todo') {
-    // Format due date for input
     const dueDate = data.due_date ? data.due_date.split('T')[0] : '';
 
     modal.innerHTML = `
@@ -266,10 +411,8 @@ function openEditModal(event) {
       </div>
     `;
 
-    // Cancel — close the modal
     modal.querySelector('.cancel-btn').onclick = () => modal.remove();
 
-    // Delete — remove the todo
     modal.querySelector('.delete-btn').onclick = async () => {
       if (!confirm('Delete this task?')) return;
       try {
@@ -286,7 +429,6 @@ function openEditModal(event) {
       }
     };
 
-    // Save — update the todo
     modal.querySelector('#editTodoForm').onsubmit = async (e) => {
       e.preventDefault();
       const updated = {
@@ -337,7 +479,6 @@ async function refreshCalendar() {
     ...buildTodoEvents(todos)
   ];
 
-  // Remove all current events and add fresh ones
   window.myCalendar.removeAllEvents();
   allEvents.forEach(event => window.myCalendar.addEvent(event));
 }
