@@ -245,3 +245,44 @@ li span {
 .context-menu .ctx-delete:hover {
   background: #fcebeb;
 }
+
+/* =======================
+   TOP BAR
+======================= */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* =======================
+   TABS
+======================= */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.tab-btn {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 20px;
+  border: 1px solid #c7c3f5;
+  border-radius: 8px;
+  background: #f5f4ff;
+  color: #534ab7;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.tab-btn:hover {
+  background: #ede9ff;
+}
+
+.tab-btn.active {
+  background: #534ab7;
+  color: #ffffff;
+  border-color: #534ab7;
+}
