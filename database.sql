@@ -13,7 +13,7 @@ CREATE TABLE todos (
   id INT AUTO_INCREMENT PRIMARY KEY,
   text VARCHAR(255),
   completed BOOLEAN DEFAULT false,
-  due_date DATE,
+  due_date DATE,                        -- Optional due date for the task
   username VARCHAR(255),
   last_modified_by VARCHAR(255),
   last_modified_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -23,11 +23,12 @@ CREATE TABLE todos (
 CREATE TABLE classes (
   id INT AUTO_INCREMENT PRIMARY KEY,
   className VARCHAR(255),
-  day VARCHAR(50),
+  day VARCHAR(255),                     -- Now stores multiple days e.g. "Monday,Wednesday,Friday"
   time VARCHAR(50),
-  location VARCHAR(255),
-  recurring BOOLEAN DEFAULT false,
-  start_date DATE,
+  location VARCHAR(255),               -- Where the class is held
+  frequency VARCHAR(50) DEFAULT 'none',-- "none", "weekly", "monthly", or "specific"
+  specific_dates TEXT,                 -- Comma separated dates e.g. "2026-05-01,2026-05-15"
+  start_date DATE,                     -- The first date of the class
   username VARCHAR(255),
   last_modified_by VARCHAR(255),
   last_modified_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
