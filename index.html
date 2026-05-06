@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>My Planner</title>
+    <title>TaskMap</title>
     <link rel="stylesheet" href="styles.css">
 
     <!-- FullCalendar library — handles all the calendar rendering -->
@@ -13,6 +13,7 @@
       if (!localStorage.getItem('token')) {
         window.location.href = 'login.html';
       }
+      document.getElementById('welcomeMsg').textContent = `Welcome, ${localStorage.getItem('username')}!`;
     </script>
   </head>
   <body>
@@ -20,7 +21,9 @@
 
       <!-- TOP BAR -->
       <div class="top-bar">
-        <h1>My Planner</h1>
+        <h1>TaskMap</h1>
+        <p id="welcomeMsg" style="font-size: 14px; color: #6b6b8a;"></p>
+        </div>
         <button onclick="logout()">Log Out</button>
       </div>
 
