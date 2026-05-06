@@ -2,6 +2,21 @@ const CALENDAR_TODOS_API   = 'https://eacs3110.mooo.com/api/todos';
 const CALENDAR_CLASSES_API = '/api/classes';
 
 /* =======================
+   GET AUTH HEADER
+   Reads the session token from localStorage.
+   Defined here so calendarScript.js does not
+   depend on other script files being loaded first.
+======================= */
+function getCalendarAuthHeader() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    window.location.href = 'login.html';
+    return null;
+  }
+  return `Bearer ${token}`;
+}
+
+/* =======================
    CALENDAR SETUP
    Runs when the page loads.
    Fetches classes and todos then builds the calendar.
@@ -42,11 +57,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 /* =======================
    FETCH CLASSES
+   Gets the logged in user's classes from the server.
 ======================= */
 async function fetchClasses() {
   try {
     const res = await fetch(CALENDAR_CLASSES_API, {
-        headers: { 'Authorization': getAuthHeader() }
+      headers: { 'Authorization': getCalendarAuthHeader() }
     });
     if (!res.ok) throw new Error('Failed to fetch classes');
     return await res.json();
@@ -58,11 +74,12 @@ async function fetchClasses() {
 
 /* =======================
    FETCH TODOS
+   Gets the logged in user's todos from the server.
 ======================= */
 async function fetchTodos() {
   try {
     const res = await fetch(CALENDAR_TODOS_API, {
-        headers: { 'Authorization': getAuthHeader() }
+      headers: { 'Authorization': getCalendarAuthHeader() }
     });
     if (!res.ok) throw new Error('Failed to fetch todos');
     return await res.json();
@@ -77,7 +94,7 @@ async function fetchTodos() {
    FullCalendar uses numbers for days of the week.
    0 = Sunday, 1 = Monday, 2 = Tuesday, etc.
 ======================= */
-const dayMap = {
+const calDayMap = {
   'Sunday': 0, 'Monday': 1, 'Tuesday': 2,
   'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6
 };
@@ -94,11 +111,8 @@ function buildClassEvents(classes) {
     if (!cls.start_date) return;
 
     const startDate = cls.start_date.split('T')[0];
-
-    // end_date is optional — if missing, recurring events go on indefinitely
-    const endDate = cls.end_date ? cls.end_date.split('T')[0] : null;
-
-    const days = cls.day ? cls.day.split(',').map(d => d.trim()) : [];
+    const endDate   = cls.end_date ? cls.end_date.split('T')[0] : null;
+    const days      = cls.day ? cls.day.split(',').map(d => d.trim()) : [];
 
     if (cls.frequency === 'weekly') {
       /* ---------------------------------
@@ -111,16 +125,13 @@ function buildClassEvents(classes) {
           id:              `class-${cls.id}-${day}`,
           title:           buildClassTitle(cls),
           startTime:       cls.time,
-          daysOfWeek:      [dayMap[day]],
+          daysOfWeek:      [calDayMap[day]],
           startRecur:      startDate,
           backgroundColor: '#534ab7',
           borderColor:     '#3c3489',
           extendedProps:   { type: 'class', data: cls }
         };
-
-        // Only add endRecur if an end date was set
         if (endDate) event.endRecur = endDate;
-
         events.push(event);
       });
 
@@ -128,11 +139,10 @@ function buildClassEvents(classes) {
       /* ---------------------------------
          MONTHLY RECURRING
          Manually generates dates for each month
-         up to the end date (or 24 months if no end date).
+         up to the end date or 24 months.
       --------------------------------- */
       days.forEach(day => {
-        const monthLimit    = 24; // Max months to generate if no end date
-        const monthlyDates  = getMonthlyDates(startDate, dayMap[day], monthLimit, endDate);
+        const monthlyDates = getMonthlyDates(startDate, calDayMap[day], 24, endDate);
         monthlyDates.forEach(date => {
           events.push({
             id:              `class-${cls.id}-${day}-${date}`,
@@ -196,7 +206,7 @@ function buildClassTitle(cls) {
    GET MONTHLY DATES
    Finds the matching weekday in each month
    from the start date up to the end date
-   (or up to monthLimit months if no end date).
+   or up to monthLimit months if no end date.
 ======================= */
 function getMonthlyDates(startDate, dayOfWeek, monthLimit, endDate) {
   const dates = [];
@@ -206,12 +216,10 @@ function getMonthlyDates(startDate, dayOfWeek, monthLimit, endDate) {
   for (let i = 0; i < monthLimit; i++) {
     const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
 
-    // Find the first occurrence of the target day in that month
     while (d.getDay() !== dayOfWeek) {
       d.setDate(d.getDate() + 1);
     }
 
-    // Stop if we've passed the end date
     if (end && d > end) break;
 
     const yyyy = d.getFullYear();
@@ -226,13 +234,14 @@ function getMonthlyDates(startDate, dayOfWeek, monthLimit, endDate) {
 /* =======================
    BUILD TODO EVENTS
    Only includes todos that have a due date.
+   Shows completed todos in grey with "(Done)" prefix.
 ======================= */
 function buildTodoEvents(todos) {
   return todos
     .filter(todo => todo.due_date)
     .map(todo => ({
       id:              `todo-${todo.id}`,
-      title:           todo.completed ? `✓ ${todo.text}` : todo.text,
+      title:           todo.completed ? `(Done) ${todo.text}` : todo.text,
       start:           todo.due_date.split('T')[0],
       allDay:          true,
       backgroundColor: todo.completed ? '#888' : '#22a06b',
@@ -316,7 +325,6 @@ function openCalendarEditModal(event) {
       </div>
     `;
 
-    // Show/hide repeat fields when frequency changes
     modal.querySelector('.ec-frequency').onchange = function () {
       const freq          = this.value;
       const repeatWrapper = modal.querySelector('.ec-repeat-wrapper');
@@ -343,7 +351,7 @@ function openCalendarEditModal(event) {
       try {
         const res = await fetch(`${CALENDAR_CLASSES_API}/${data.id}`, {
           method: 'DELETE',
-          headers: { 'Authorization': getAuthHeader() }
+          headers: { 'Authorization': getCalendarAuthHeader() }
         });
         if (!res.ok) throw new Error('Delete failed');
         modal.remove();
@@ -382,7 +390,7 @@ function openCalendarEditModal(event) {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': getAuthHeader()
+            'Authorization': getCalendarAuthHeader()
           },
           body: JSON.stringify(updated)
         });
@@ -426,7 +434,7 @@ function openCalendarEditModal(event) {
       try {
         const res = await fetch(`${CALENDAR_TODOS_API}/${data.id}`, {
           method: 'DELETE',
-          headers: { 'Authorization': getAuthHeader() }
+          headers: { 'Authorization': getCalendarAuthHeader() }
         });
         if (!res.ok) throw new Error('Delete failed');
         modal.remove();
@@ -449,7 +457,7 @@ function openCalendarEditModal(event) {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': getAuthHeader()
+            'Authorization': getCalendarAuthHeader()
           },
           body: JSON.stringify(updated)
         });
