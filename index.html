@@ -3,6 +3,11 @@
   <head>
     <title>My Planner</title>
     <link rel="stylesheet" href="styles.css">
+
+    <!-- FullCalendar library — handles all the calendar rendering -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
     <script>
       // If not logged in, send to login page right away
       if (!localStorage.getItem("username") || !localStorage.getItem("password")) {
@@ -23,12 +28,15 @@
       <div class="tabs">
         <button class="tab-btn active" onclick="showTab('todo', this)">To-Do List</button>
         <button class="tab-btn" onclick="showTab('schedule', this)">Class Schedule</button>
+        <button class="tab-btn" onclick="showTab('calendar', this)">Calendar</button>
       </div>
 
       <!-- TO-DO TAB -->
       <div id="todo" class="tab-content">
         <form id="todoForm">
           <input type="text" id="input" placeholder="Add Task" required>
+          <!-- NEW: optional due date for the task -->
+          <input type="date" id="due_date" title="Due Date (optional)">
           <button type="submit">Add To List</button>
         </form>
         <ul id="todoList"></ul>
@@ -36,7 +44,6 @@
 
       <!-- CLASS SCHEDULE TAB -->
       <div id="schedule" class="tab-content" style="display: none;">
-        <img src="media/ClassSchedule.png" width="300">
         <form id="classScheduleForm">
           <input type="text" id="className" placeholder="Class Name" required>
           <select id="day" required>
@@ -50,12 +57,25 @@
             <option>Sunday</option>
           </select>
           <input type="time" id="time" required>
+          <!-- NEW: optional location -->
+          <input type="text" id="location" placeholder="Location (optional)">
+          <!-- NEW: start date for calendar -->
+          <input type="date" id="start_date" title="Start Date" required>
+          <!-- NEW: recurring weekly checkbox -->
+          <label class="recurring-label">
+            <input type="checkbox" id="recurring"> Repeats weekly
+          </label>
           <button type="submit">Add Class</button>
         </form>
         <p style="font-size: 13px; color: #6b6b8a; margin-bottom: 10px;">
           Double-click an item to edit or delete
         </p>
         <ul id="classSchedule"></ul>
+      </div>
+
+      <!-- CALENDAR TAB -->
+      <div id="calendar" class="tab-content" style="display: none;">
+        <div id="calendarView"></div>
       </div>
 
     </div>
@@ -75,6 +95,11 @@
         document.getElementById(tabName).style.display = 'block';
         // Highlight the clicked button
         clickedBtn.classList.add('active');
+
+        // If switching to calendar, refresh it so it renders correctly
+        if (tabName === 'calendar' && window.myCalendar) {
+          window.myCalendar.render();
+        }
       }
 
       function logout() {
@@ -86,5 +111,6 @@
 
     <script src="ToDoListScript.js"></script>
     <script src="ClassScheduleScript.js"></script>
+    <script src="calendarScript.js"></script>
   </body>
 </html>
