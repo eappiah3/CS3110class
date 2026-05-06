@@ -1,29 +1,42 @@
 /* =======================
    LOGIN
-   Sends username/password to the server.
-   If correct, saves them and goes to the app.
+   Sends username and password to the server.
+   If correct, saves the session token and
+   redirects to the handler page.
 ======================= */
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const username = document.getElementById('username').value;
   const password = document.getElementById('password').value;
-  const authHeader = "Basic " + btoa(`${username}:${password}`);
+  const errorEl  = document.getElementById('loginError');
+
+  errorEl.style.display = 'none';
 
   try {
-    // Test the credentials by hitting a protected route
-    const res = await fetch('/api/classes', {
-      headers: { 'Authorization': authHeader }
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
     });
 
-    if (res.ok || res.status === 200) {
-      // Save credentials and go to the app
-      localStorage.setItem("username", username);
-      localStorage.setItem("password", password);
-      window.location.href = 'index.html';
-    } else {
-      document.getElementById('loginError').style.display = 'block';
+    if (!res.ok) {
+      // Show error message if credentials are wrong
+      errorEl.style.display = 'block';
+      return;
     }
+
+    const data = await res.json();
+
+    // Save the token and username to localStorage
+    // We no longer save the password — just the token
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('username', data.username);
+
+    // Go to the handler page which verifies the token
+    // and redirects to the app
+    window.location.href = 'handler.html';
+
   } catch (err) {
     console.error(err);
     alert('Could not connect to server');
