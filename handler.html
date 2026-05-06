@@ -1,44 +1,55 @@
-/* =======================
-   LOGIN
-   Sends username and password to the server.
-   If correct, saves the session token and
-   redirects to the handler page.
-======================= */
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Loading...</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="container">
+      <p style="margin-top: 40px; color: #6b6b8a;">Loading your planner...</p>
+    </div>
 
-  const username = document.getElementById('username').value;
-  const password = document.getElementById('password').value;
-  const errorEl  = document.getElementById('loginError');
+    <script>
+      /* =======================
+         HANDLER
+         This page sits between login and the app.
+         It checks that the session token is valid
+         before letting the user into the app.
+         If the token is missing or invalid,
+         it sends the user back to login.
+      ======================= */
+      async function verifyAndRedirect() {
+        const token = localStorage.getItem('token');
 
-  errorEl.style.display = 'none';
+        // If there's no token at all, go back to login
+        if (!token) {
+          window.location.href = 'login.html';
+          return;
+        }
 
-  try {
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
+        try {
+          // Try a simple authenticated request to verify the token works
+          const res = await fetch('/api/classes', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
 
-    if (!res.ok) {
-      // Show error message if credentials are wrong
-      errorEl.style.display = 'block';
-      return;
-    }
+          if (res.ok || res.status === 200) {
+            // Token is valid — go to the app
+            window.location.href = 'index.html';
+          } else {
+            // Token is invalid or expired — clear it and go to login
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            window.location.href = 'login.html';
+          }
+        } catch (err) {
+          console.error(err);
+          // If the server is unreachable, go back to login
+          window.location.href = 'login.html';
+        }
+      }
 
-    const data = await res.json();
-
-    // Save the token and username to localStorage
-    // We no longer save the password — just the token
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('username', data.username);
-
-    // Go to the handler page which verifies the token
-    // and redirects to the app
-    window.location.href = 'handler.html';
-
-  } catch (err) {
-    console.error(err);
-    alert('Could not connect to server');
-  }
-});
+      verifyAndRedirect();
+    </script>
+  </body>
+</html>
