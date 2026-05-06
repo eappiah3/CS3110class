@@ -139,12 +139,15 @@ app.post('/api/signup', (req, res) => {
    TODO ROUTES
 ======================= */
 
-/* GET TODOS — No login required to view */
-app.get('/api/todos', (req, res) => {
-  db.query('SELECT * FROM todos', (err, results) => {
-    if (err) return res.status(500).send(err);
-    res.json(results);
-  });
+/* GET TODOS — Login required, only shows your own todos */
+app.get('/api/todos', sessionAuth, (req, res) => {
+  db.query('SELECT * FROM todos WHERE username = ?', 
+    [req.user.username],
+    (err, results) => {
+      if (err) return res.status(500).send(err);
+      res.json(results);
+    }
+  );
 });
 
 /* CREATE TODO — Login required */
@@ -187,12 +190,15 @@ app.delete('/api/todos/:id', sessionAuth, (req, res) => {
    CLASS ROUTES
 ======================= */
 
-/* GET CLASSES — No login required to view */
-app.get('/api/classes', (req, res) => {
-  db.query('SELECT * FROM classes', (err, results) => {
-    if (err) return res.status(500).send(err);
-    res.json(results);
-  });
+/* GET CLASSES — Login required, only shows your own classes */
+app.get('/api/classes', sessionAuth, (req, res) => {
+  db.query('SELECT * FROM classes WHERE username = ?',
+    [req.user.username],
+    (err, results) => {
+      if (err) return res.status(500).send(err);
+      res.json(results);
+    }
+  );
 });
 
 /* CREATE CLASS — Login required */
