@@ -287,7 +287,7 @@ document.getElementById('classScheduleForm').addEventListener('submit', async (e
     ? document.getElementById('specific_dates').value
     : null;
 
-  try {
+   try {
     const res = await fetch(CLASSES_API, {
       method: 'POST',
       headers: {
@@ -296,7 +296,12 @@ document.getElementById('classScheduleForm').addEventListener('submit', async (e
       },
       body: JSON.stringify({ className, day, time, location, start_date, frequency, specific_dates })
     });
-    if (!res.ok) throw new Error('Failed to create class');
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("SERVER ERROR:", res.status, errorText);
+      throw new Error(errorText || 'Failed to create class');
+    }
+     
     document.getElementById('classScheduleForm').reset();
     document.getElementById('specificDatesWrapper').style.display = 'none';
     loadClasses();
