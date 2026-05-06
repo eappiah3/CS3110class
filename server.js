@@ -9,6 +9,7 @@ app.use(express.static(__dirname));
 
 /* =======================
    MYSQL CONNECTION
+   Connects to the local MySQL database.
 ======================= */
 const db = mysql.createConnection({
   host: '127.0.0.1',
@@ -27,6 +28,9 @@ db.connect(err => {
 
 /* =======================
    BASIC AUTH MIDDLEWARE
+   Checks the username and password sent
+   with each request against the database.
+   If they don't match, the request is blocked.
 ======================= */
 function basicAuth(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -34,6 +38,7 @@ function basicAuth(req, res, next) {
     res.setHeader('WWW-Authenticate', 'Basic');
     return res.status(401).send('Authentication required');
   }
+
   const base64 = authHeader.split(' ')[1];
   const decoded = Buffer.from(base64, 'base64').toString();
   const [username, password] = decoded.split(':');
@@ -53,10 +58,38 @@ function basicAuth(req, res, next) {
 }
 
 /* =======================
+   SELF SIGNUP (PUBLIC)
+   Anyone can create a regular account.
+   No login required for this route.
+======================= */
+app.post('/api/signup', (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
+
+  db.query(
+    'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+    [username, password, 'author'],
+    (err) => {
+      if (err) {
+        // Username already taken
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(409).json({ error: 'Username already taken' });
+        }
+        return res.status(500).send(err);
+      }
+      res.json({ message: 'Account created' });
+    }
+  );
+});
+
+/* =======================
    TODO ROUTES
 ======================= */
 
-/* GET TODOS */
+/* GET TODOS — No login required to view */
 app.get('/api/todos', (req, res) => {
   db.query(
     'SELECT * FROM todos',
@@ -67,8 +100,8 @@ app.get('/api/todos', (req, res) => {
   );
 });
 
-/* CREATE TODO */
-app.post('/api/todos', basicAuth, (req, res) => {   // Fixed: was [app.post](http://app.post)
+/* CREATE TODO — Login required */
+app.post('/api/todos', basicAuth, (req, res) => {
   const { text } = req.body;
   db.query(
     'INSERT INTO todos (text, completed, username, last_modified_by) VALUES (?, ?, ?, ?)',
@@ -84,9 +117,9 @@ app.post('/api/todos', basicAuth, (req, res) => {   // Fixed: was [app.post](htt
   );
 });
 
-/* UPDATE TODO */
+/* UPDATE TODO — Login required */
 app.put('/api/todos/:id', basicAuth, (req, res) => {
-  const id = req.params.id;   // Fixed: was [req.params.id](http://req.params.id)
+  const id = req.params.id;
   const { text, completed } = req.body;
   db.query(
     'UPDATE todos SET text = ?, completed = ?, last_modified_by = ? WHERE id = ?',
@@ -98,9 +131,9 @@ app.put('/api/todos/:id', basicAuth, (req, res) => {
   );
 });
 
-/* DELETE TODO */
+/* DELETE TODO — Login required */
 app.delete('/api/todos/:id', basicAuth, (req, res) => {
-  const id = req.params.id;   // Fixed: was [req.params.id](http://req.params.id)
+  const id = req.params.id;
   db.query(
     'DELETE FROM todos WHERE id = ?',
     [id],
@@ -115,7 +148,7 @@ app.delete('/api/todos/:id', basicAuth, (req, res) => {
    CLASS ROUTES
 ======================= */
 
-/* GET CLASSES */
+/* GET CLASSES — No login required to view */
 app.get('/api/classes', (req, res) => {
   db.query(
     'SELECT * FROM classes',
@@ -126,8 +159,8 @@ app.get('/api/classes', (req, res) => {
   );
 });
 
-/* CREATE CLASS */
-app.post('/api/classes', basicAuth, (req, res) => {   // Fixed: was [app.post](http://app.post)
+/* CREATE CLASS — Login required */
+app.post('/api/classes', basicAuth, (req, res) => {
   const { className, day, time } = req.body;
   db.query(
     'INSERT INTO classes (className, day, time, username, last_modified_by) VALUES (?, ?, ?, ?, ?)',
@@ -144,9 +177,9 @@ app.post('/api/classes', basicAuth, (req, res) => {   // Fixed: was [app.post](h
   );
 });
 
-/* UPDATE CLASS */
+/* UPDATE CLASS — Login required */
 app.put('/api/classes/:id', basicAuth, (req, res) => {
-  const id = req.params.id;   // Fixed: was [req.params.id](http://req.params.id)
+  const id = req.params.id;
   const { className, day, time } = req.body;
   db.query(
     'UPDATE classes SET className = ?, day = ?, time = ?, last_modified_by = ? WHERE id = ?',
@@ -158,9 +191,9 @@ app.put('/api/classes/:id', basicAuth, (req, res) => {
   );
 });
 
-/* DELETE CLASS */
+/* DELETE CLASS — Login required */
 app.delete('/api/classes/:id', basicAuth, (req, res) => {
-  const id = req.params.id;   // Fixed: was [req.params.id](http://req.params.id)
+  const id = req.params.id;
   db.query(
     'DELETE FROM classes WHERE id = ?',
     [id],
@@ -173,8 +206,10 @@ app.delete('/api/classes/:id', basicAuth, (req, res) => {
 
 /* =======================
    USER ROUTES (ADMIN ONLY)
+   Only admins can create users this way.
+   Regular users should use /api/signup instead.
 ======================= */
-app.post('/api/users', basicAuth, (req, res) => {   // Fixed: was [app.post](http://app.post)
+app.post('/api/users', basicAuth, (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Forbidden' });
   }
