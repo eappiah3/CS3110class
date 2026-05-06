@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>TaskMap</title>
+    <title>My Planner</title>
     <link rel="stylesheet" href="styles.css">
 
     <!-- FullCalendar library — handles all the calendar rendering -->
@@ -13,7 +13,6 @@
       if (!localStorage.getItem('token')) {
         window.location.href = 'login.html';
       }
-      document.getElementById('welcomeMsg').textContent = `Welcome, ${localStorage.getItem('username')}!`;
     </script>
   </head>
   <body>
@@ -21,10 +20,11 @@
 
       <!-- TOP BAR -->
       <div class="top-bar">
-        <h1>TaskMap</h1>
-        <p id="welcomeMsg" style="font-size: 14px; color: #6b6b8a;"></p>
+        <div class="top-bar-left">
+          <h1>My Planner</h1>
+          <p id="welcomeMsg"></p>
         </div>
-        <button onclick="logout()">Log Out</button>
+        <button class="logout-btn" onclick="logout()">Log Out</button>
       </div>
 
       <!-- TAB BUTTONS -->
@@ -38,7 +38,6 @@
       <div id="todo" class="tab-content">
         <form id="todoForm">
           <input type="text" id="input" placeholder="Add Task" required>
-          <!-- Optional due date for the task -->
           <label style="font-size: 13px; color: #6b6b8a;">
             Due Date <span style="font-weight: 400;">(optional)</span>
             <input type="date" id="due_date">
@@ -55,8 +54,8 @@
       <div id="schedule" class="tab-content" style="display: none;">
         <form id="classScheduleForm">
 
-          <!-- Event Title -->
-          <input type="text" id="className" placeholder="Event Title" required>
+          <!-- Class name -->
+          <input type="text" id="className" placeholder="Class Name" required>
 
           <!-- Multi-day checkboxes -->
           <div class="day-checkboxes">
@@ -91,7 +90,6 @@
           <!-- End date and specific dates — only shown when repeating -->
           <div id="repeatFieldsWrapper" style="display: none;">
 
-            <!-- End date — shown for weekly and monthly -->
             <div id="endDateWrapper">
               <label style="font-size: 13px; color: #6b6b8a;">
                 End Date <span style="font-weight: 400;">(optional)</span>
@@ -99,7 +97,6 @@
               </label>
             </div>
 
-            <!-- Specific dates input — only shown when "Specific dates" is selected -->
             <div id="specificDatesWrapper" style="display: none;">
               <input type="text" id="specific_dates" placeholder="e.g. 2026-05-01, 2026-05-15">
               <small>Enter dates separated by commas (YYYY-MM-DD)</small>
@@ -107,7 +104,7 @@
 
           </div>
 
-          <button type="submit">Add Event</button>
+          <button type="submit">Add Class</button>
         </form>
 
         <p style="font-size: 13px; color: #6b6b8a; margin-bottom: 10px;">
@@ -148,22 +145,19 @@
          hides everything if "does not repeat".
       ======================= */
       function toggleRepeatFields() {
-        const frequency          = document.getElementById('frequency').value;
-        const repeatWrapper      = document.getElementById('repeatFieldsWrapper');
-        const endDateWrapper     = document.getElementById('endDateWrapper');
-        const specificWrapper    = document.getElementById('specificDatesWrapper');
+        const frequency       = document.getElementById('frequency').value;
+        const repeatWrapper   = document.getElementById('repeatFieldsWrapper');
+        const endDateWrapper  = document.getElementById('endDateWrapper');
+        const specificWrapper = document.getElementById('specificDatesWrapper');
 
         if (frequency === 'none') {
-          // Hide everything
           repeatWrapper.style.display   = 'none';
           specificWrapper.style.display = 'none';
         } else if (frequency === 'specific') {
-          // Show specific dates, hide end date
           repeatWrapper.style.display   = 'block';
           endDateWrapper.style.display  = 'none';
           specificWrapper.style.display = 'block';
         } else {
-          // Weekly or monthly — show end date, hide specific dates
           repeatWrapper.style.display   = 'block';
           endDateWrapper.style.display  = 'block';
           specificWrapper.style.display = 'none';
@@ -195,5 +189,11 @@
     <script src="ToDoListScript.js"></script>
     <script src="ClassScheduleScript.js"></script>
     <script src="calendarScript.js"></script>
+
+    <!-- Set welcome message after page is fully loaded -->
+    <script>
+      document.getElementById('welcomeMsg').textContent = `Welcome, ${localStorage.getItem('username')}!`;
+    </script>
+
   </body>
 </html>
