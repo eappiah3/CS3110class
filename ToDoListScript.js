@@ -1,23 +1,21 @@
-const form = document.getElementById('todoForm');
-const input = document.getElementById('input');
-const list = document.getElementById('todoList');
-const API = 'https://eacs3110.mooo.com/api/todos';
+const TODO_API = 'https://eacs3110.mooo.com/api/todos';
+const form     = document.getElementById('todoForm');
+const input    = document.getElementById('input');
+const list     = document.getElementById('todoList');
 
 /* =======================
-   AUTH HELPER
-   Checks localStorage for saved username/password.
-   If not found, asks the user to enter them.
+   GET AUTH HEADER
+   Reads the session token from localStorage
+   and returns it as a Bearer token header.
+   No more username/password sent with requests.
 ======================= */
 function getAuthHeader() {
-  let username = localStorage.getItem("username");
-  let password = localStorage.getItem("password");
-  if (!username || !password) {
-    username = prompt("Username:");
-    password = prompt("Password:");
-    localStorage.setItem("username", username);
-    localStorage.setItem("password", password);
+  const token = localStorage.getItem('token');
+  if (!token) {
+    window.location.href = 'login.html';
+    return null;
   }
-  return "Basic " + btoa(`${username}:${password}`);
+  return `Bearer ${token}`;
 }
 
 /* =======================
@@ -28,7 +26,7 @@ function getAuthHeader() {
 form.addEventListener('submit', async function (event) {
   event.preventDefault();
 
-  const text = input.value.trim();
+  const text     = input.value.trim();
   const due_date = document.getElementById('due_date').value || null;
 
   if (!text) {
@@ -38,7 +36,7 @@ form.addEventListener('submit', async function (event) {
 
   try {
     form.querySelector('button').disabled = true;
-    const res = await fetch(API, {
+    const res = await fetch(TODO_API, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -72,7 +70,7 @@ form.addEventListener('submit', async function (event) {
 async function loadTodos() {
   try {
     list.innerHTML = '<li>Loading...</li>';
-    const res = await fetch(API);
+    const res = await fetch(TODO_API);
     if (!res.ok) {
       const msg = await res.text();
       console.error("LOAD ERROR:", res.status, msg);
@@ -94,18 +92,16 @@ async function loadTodos() {
    a checkbox to mark complete, and double-click to delete.
 ======================= */
 function addTodoToDOM(todo) {
-  const li = document.createElement('li');
-
+  const li       = document.createElement('li');
   const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
+  checkbox.type    = 'checkbox';
   checkbox.checked = todo.completed;
 
   const span = document.createElement('span');
 
   // Build display text — only show due date if it exists
-  let displayText = `${todo.text}`;
+  let displayText = todo.text;
   if (todo.due_date) {
-    // Format the date nicely e.g. "May 10, 2026"
     const formatted = new Date(todo.due_date).toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC'
     });
@@ -120,16 +116,16 @@ function addTodoToDOM(todo) {
   ======================= */
   checkbox.onchange = async () => {
     try {
-      const res = await fetch(`${API}/${todo.id}`, {
+      const res = await fetch(`${TODO_API}/${todo.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': getAuthHeader()
         },
         body: JSON.stringify({
-          text: todo.text,
+          text:      todo.text,
           completed: checkbox.checked,
-          due_date: todo.due_date || null
+          due_date:  todo.due_date || null
         })
       });
       if (!res.ok) {
@@ -152,11 +148,9 @@ function addTodoToDOM(todo) {
   li.ondblclick = async () => {
     if (!confirm('Delete this to do list item?')) return;
     try {
-      const res = await fetch(`${API}/${todo.id}`, {
+      const res = await fetch(`${TODO_API}/${todo.id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': getAuthHeader()
-        }
+        headers: { 'Authorization': getAuthHeader() }
       });
       if (!res.ok) {
         const msg = await res.text();
@@ -170,9 +164,7 @@ function addTodoToDOM(todo) {
     }
   };
 
-  if (todo.completed) {
-    li.classList.add('completed');
-  }
+  if (todo.completed) li.classList.add('completed');
 
   li.appendChild(checkbox);
   li.appendChild(span);
@@ -183,4 +175,4 @@ function addTodoToDOM(todo) {
    START THE APP
 ======================= */
 loadTodos();
-setInterval(loadTodos, 5000); // Refresh every 5 seconds
+setInterval(loadTodos, 5000);
