@@ -1,35 +1,53 @@
 <!DOCTYPE html>
 <html>
-<head>
-<title>Add Class Schedule</title>
-<link rel="stylesheet" href="styles.css">
-</head>
-<body>
+  <head>
+    <title>Class Schedule</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+      // If not logged in, send to login page right away
+      if (!localStorage.getItem("username") || !localStorage.getItem("password")) {
+        window.location.href = 'login.html';
+      }
+    </script>
+  </head>
+  <body>
+    <h1>My Class Schedule</h1>
 
-  <h1>My Class Schedule</h1>
-<img src="media/ClassSchedule.png" width="300">
-<a href="index.html">See To-Do List</a>
-  <form id="classScheduleForm">
-    <input type="text" id="className" placeholder="Class Name" required>
-    <select id="day" required>
-      <option value="" disabled selected>Weekday</option>
-      <option>Monday</option>
-      <option>Tuesday</option>
-      <option>Wednesday</option>
-      <option>Thursday</option>
-      <option>Friday</option>
-      <option>Saturday</option>
-      <option>Sunday</option>
-    </select>
-    <input type="time" id="time" required>
-    <button type="submit">Add Class</button>
-  </form>
+    <button onclick="logout()">Log Out</button>
 
-  <p style="font-size: 13px; color: #6b6b8a; margin-bottom: 10px;">Double-click to edit an item on the to do list</p>
-  
-  <ul id="classSchedule"></ul>
-                  
-<script src = "ClassScheduleScript.js"></script>
-</body>
+    <img src="media/ClassSchedule.png" width="300">
+
+    <a href="index.html">See To-Do List</a>
+
+    <form id="classScheduleForm">
+      <input type="text" id="className" placeholder="Class Name" required>
+      <select id="day" required>
+        <option value="" disabled selected>Weekday</option>
+        <option>Sunday</option>
+        <option>Monday</option>
+        <option>Tuesday</option>
+        <option>Wednesday</option>
+        <option>Thursday</option>
+        <option>Friday</option>
+        <option>Saturday</option>
+      </select>
+      <input type="time" id="time" required>
+      <button type="submit">Add Class</button>
+    </form>
+
+    <p style="font-size: 13px; color: #6b6b8a; margin-bottom: 10px;">
+      Double-click an item to edit or delete
+    </p>
+
+    <ul id="classSchedule"></ul>
+
+    <script>
+      function logout() {
+        localStorage.removeItem("username");
+        localStorage.removeItem("password");
+        window.location.href = 'login.html';
+      }
+    </script>
+    <script src="ClassScheduleScript.js"></script>
+  </body>
 </html>
-
