@@ -77,7 +77,14 @@ function renderClasses(data) {
   data.forEach(cls => {
     const li = document.createElement('li');
     const span = document.createElement('span');
-    span.textContent = `${cls.day} - ${cls.time} : ${cls.className} (Last edited by ${cls.last_modified_by})`;
+
+    // Build the display text — only show location if it exists
+    let displayText = `${cls.day} - ${cls.time} : ${cls.className}`;
+    if (cls.location) displayText += ` @ ${cls.location}`;
+    if (cls.recurring) displayText += ' (Weekly)';
+    displayText += ` (Last edited by ${cls.last_modified_by})`;
+
+    span.textContent = displayText;
 
     li.appendChild(span);
     list.appendChild(li);
@@ -152,6 +159,9 @@ function openInlineEdit(li, cls) {
   // Don't open a second form if one is already open
   if (li.querySelector('.edit-form')) return;
 
+  // Format the start_date for the date input (YYYY-MM-DD)
+  const startDateValue = cls.start_date ? cls.start_date.split('T')[0] : '';
+
   li.innerHTML = `
     <form class="edit-form">
       <input class="edit-className" value="${cls.className}" placeholder="Class Name" required />
@@ -160,6 +170,11 @@ function openInlineEdit(li, cls) {
           .map(d => `<option ${cls.day === d ? 'selected' : ''}>${d}</option>`).join('')}
       </select>
       <input class="edit-time" type="time" value="${cls.time}" required />
+      <input class="edit-location" type="text" value="${cls.location || ''}" placeholder="Location (optional)" />
+      <input class="edit-start-date" type="date" value="${startDateValue}" required />
+      <label class="recurring-label">
+        <input class="edit-recurring" type="checkbox" ${cls.recurring ? 'checked' : ''}> Repeats weekly
+      </label>
       <button type="submit">Save</button>
       <button type="button" class="cancel-btn">Cancel</button>
     </form>
@@ -177,9 +192,12 @@ function openInlineEdit(li, cls) {
     e.stopPropagation();
 
     const updated = {
-      className: li.querySelector('.edit-className').value,
-      day:       li.querySelector('.edit-day').value,
-      time:      li.querySelector('.edit-time').value,
+      className:  li.querySelector('.edit-className').value,
+      day:        li.querySelector('.edit-day').value,
+      time:       li.querySelector('.edit-time').value,
+      location:   li.querySelector('.edit-location').value,
+      start_date: li.querySelector('.edit-start-date').value,
+      recurring:  li.querySelector('.edit-recurring').checked
     };
 
     try {
@@ -208,9 +226,12 @@ function openInlineEdit(li, cls) {
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const className = document.getElementById('className').value;
-  const day = document.getElementById('day').value;
-  const time = document.getElementById('time').value;
+  const className  = document.getElementById('className').value;
+  const day        = document.getElementById('day').value;
+  const time       = document.getElementById('time').value;
+  const location   = document.getElementById('location').value;
+  const start_date = document.getElementById('start_date').value;
+  const recurring  = document.getElementById('recurring').checked;
 
   try {
     const res = await fetch(API, {
@@ -219,7 +240,7 @@ form.addEventListener('submit', async (e) => {
         'Content-Type': 'application/json',
         'Authorization': getAuthHeader()
       },
-      body: JSON.stringify({ className, day, time })
+      body: JSON.stringify({ className, day, time, location, start_date, recurring })
     });
     if (!res.ok) throw new Error('Failed to create class');
     form.reset();
@@ -231,6 +252,9 @@ form.addEventListener('submit', async (e) => {
   }
 });
 
+/* =======================
+   START THE APP
+======================= */
 requestNotificationPermission();
 loadClasses();
 setInterval(loadClasses, 5000); // Refresh every 5 seconds
