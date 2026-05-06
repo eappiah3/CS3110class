@@ -101,7 +101,7 @@ app.get('/api/todos', (req, res) => {
 
 /* CREATE TODO — Login required */
 app.post('/api/todos', basicAuth, (req, res) => {
-  const { text, due_date } = req.body;  // NEW: accept due_date
+  const { text, due_date } = req.body;
   db.query(
     'INSERT INTO todos (text, completed, due_date, username, last_modified_by) VALUES (?, ?, ?, ?, ?)',
     [text, false, due_date || null, req.user.username, req.user.username],
@@ -120,7 +120,7 @@ app.post('/api/todos', basicAuth, (req, res) => {
 /* UPDATE TODO — Login required */
 app.put('/api/todos/:id', basicAuth, (req, res) => {
   const id = req.params.id;
-  const { text, completed, due_date } = req.body;  // NEW: accept due_date
+  const { text, completed, due_date } = req.body;
   db.query(
     'UPDATE todos SET text = ?, completed = ?, due_date = ?, last_modified_by = ? WHERE id = ?',
     [text, completed, due_date || null, req.user.username, id],
@@ -161,10 +161,23 @@ app.get('/api/classes', (req, res) => {
 
 /* CREATE CLASS — Login required */
 app.post('/api/classes', basicAuth, (req, res) => {
-  const { className, day, time, location, recurring, start_date } = req.body;  // NEW fields
+  const { className, day, time, location, frequency, specific_dates, start_date } = req.body;
+
+  // day is stored as a comma separated string e.g. "Monday,Wednesday"
+  // specific_dates is stored as a comma separated string e.g. "2026-05-01,2026-05-15"
   db.query(
-    'INSERT INTO classes (className, day, time, location, recurring, start_date, username, last_modified_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [className, day, time, location || null, recurring || false, start_date || null, req.user.username, req.user.username],
+    'INSERT INTO classes (className, day, time, location, frequency, specific_dates, start_date, username, last_modified_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [
+      className,
+      day || null,
+      time,
+      location || null,
+      frequency || 'none',
+      specific_dates || null,
+      start_date || null,
+      req.user.username,
+      req.user.username
+    ],
     (err, result) => {
       if (err) return res.status(500).send(err);
       res.json({
@@ -172,9 +185,10 @@ app.post('/api/classes', basicAuth, (req, res) => {
         className,
         day,
         time,
-        location: location || null,
-        recurring: recurring || false,
-        start_date: start_date || null
+        location:       location || null,
+        frequency:      frequency || 'none',
+        specific_dates: specific_dates || null,
+        start_date:     start_date || null
       });
     }
   );
@@ -183,10 +197,20 @@ app.post('/api/classes', basicAuth, (req, res) => {
 /* UPDATE CLASS — Login required */
 app.put('/api/classes/:id', basicAuth, (req, res) => {
   const id = req.params.id;
-  const { className, day, time, location, recurring, start_date } = req.body;  // NEW fields
+  const { className, day, time, location, frequency, specific_dates, start_date } = req.body;
   db.query(
-    'UPDATE classes SET className = ?, day = ?, time = ?, location = ?, recurring = ?, start_date = ?, last_modified_by = ? WHERE id = ?',
-    [className, day, time, location || null, recurring || false, start_date || null, req.user.username, id],
+    'UPDATE classes SET className = ?, day = ?, time = ?, location = ?, frequency = ?, specific_dates = ?, start_date = ?, last_modified_by = ? WHERE id = ?',
+    [
+      className,
+      day || null,
+      time,
+      location || null,
+      frequency || 'none',
+      specific_dates || null,
+      start_date || null,
+      req.user.username,
+      id
+    ],
     (err) => {
       if (err) return res.status(500).send(err);
       res.json({ message: 'Class updated' });
