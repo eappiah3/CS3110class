@@ -45,7 +45,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 ======================= */
 async function fetchClasses() {
   try {
-    const res = await fetch(CALENDAR_CLASSES_API);
+    const res = await fetch(CALENDAR_CLASSES_API, {
+        headers: { 'Authorization': getAuthHeader() }
+    });
     if (!res.ok) throw new Error('Failed to fetch classes');
     return await res.json();
   } catch (err) {
@@ -59,7 +61,9 @@ async function fetchClasses() {
 ======================= */
 async function fetchTodos() {
   try {
-    const res = await fetch(CALENDAR_TODOS_API);
+    const res = await fetch(CALENDAR_TODOS_API, {
+        headers: { 'Authorization': getAuthHeader() }
+    });
     if (!res.ok) throw new Error('Failed to fetch todos');
     return await res.json();
   } catch (err) {
