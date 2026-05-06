@@ -1,5 +1,5 @@
-const TODOS_API   = 'https://eacs3110.mooo.com/api/todos';
-const CALENDAR_API = '/api/classes';
+const CALENDAR_TODOS_API   = 'https://eacs3110.mooo.com/api/todos';
+const CALENDAR_CLASSES_API = '/api/classes';
 
 /* =======================
    CALENDAR SETUP
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 ======================= */
 async function fetchClasses() {
   try {
-    const res = await fetch(CALENDAR_API);
+    const res = await fetch(CALENDAR_CLASSES_API);
     if (!res.ok) throw new Error('Failed to fetch classes');
     return await res.json();
   } catch (err) {
@@ -59,7 +59,7 @@ async function fetchClasses() {
 ======================= */
 async function fetchTodos() {
   try {
-    const res = await fetch(TODOS_API);
+    const res = await fetch(CALENDAR_TODOS_API);
     if (!res.ok) throw new Error('Failed to fetch todos');
     return await res.json();
   } catch (err) {
@@ -337,7 +337,7 @@ function openCalendarEditModal(event) {
     modal.querySelector('.delete-btn').onclick = async () => {
       if (!confirm('Delete this class?')) return;
       try {
-        const res = await fetch(`${CALENDAR_API}/${data.id}`, {
+        const res = await fetch(`${CALENDAR_CLASSES_API}/${data.id}`, {
           method: 'DELETE',
           headers: { 'Authorization': getAuthHeader() }
         });
@@ -374,7 +374,7 @@ function openCalendarEditModal(event) {
       };
 
       try {
-        const res = await fetch(`${CALENDAR_API}/${data.id}`, {
+        const res = await fetch(`${CALENDAR_CLASSES_API}/${data.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -420,7 +420,7 @@ function openCalendarEditModal(event) {
     modal.querySelector('.delete-btn').onclick = async () => {
       if (!confirm('Delete this task?')) return;
       try {
-        const res = await fetch(`${TODOS_API}/${data.id}`, {
+        const res = await fetch(`${CALENDAR_TODOS_API}/${data.id}`, {
           method: 'DELETE',
           headers: { 'Authorization': getAuthHeader() }
         });
@@ -441,7 +441,7 @@ function openCalendarEditModal(event) {
         completed: modal.querySelector('.et-completed').checked
       };
       try {
-        const res = await fetch(`${TODOS_API}/${data.id}`, {
+        const res = await fetch(`${CALENDAR_TODOS_API}/${data.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
