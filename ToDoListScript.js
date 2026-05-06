@@ -109,7 +109,6 @@ function addTodoToDOM(todo) {
     });
     displayText += ` - Due: ${formatted}`;
   }
-  displayText += ` (Last edited by ${todo.last_modified_by})`;
   span.textContent = displayText;
 
   /* =======================
