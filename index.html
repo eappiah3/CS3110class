@@ -1,20 +1,36 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<title> To-Do List</title>
-		 <link rel="stylesheet" href="styles.css">
-	</head>
-	<body>
-		<h1>To-Do List</h1>
-	
-		<a href="ClassSchedule.html">See Class Schedule</a>
-  	
-		<form id="todoForm">
-    			<input type="text" id="input" placeholder="Add Task" required>
-    			<button type="submit">Add To List</button>
-		</form>	
-		<ul id="todoList"></ul>
+  <head>
+    <title>To-Do List</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+      // If not logged in, send to login page right away
+      if (!localStorage.getItem("username") || !localStorage.getItem("password")) {
+        window.location.href = 'login.html';
+      }
+    </script>
+  </head>
+  <body>
+    <h1>To-Do List</h1>
 
-  	<script src="ToDoListScript.js"></script>
-</body>
+    <button onclick="logout()">Log Out</button>
+
+    <a href="ClassSchedule.html">See Class Schedule</a>
+
+    <form id="todoForm">
+      <input type="text" id="input" placeholder="Add Task" required>
+      <button type="submit">Add To List</button>
+    </form>
+
+    <ul id="todoList"></ul>
+
+    <script>
+      function logout() {
+        localStorage.removeItem("username");
+        localStorage.removeItem("password");
+        window.location.href = 'login.html';
+      }
+    </script>
+    <script src="ToDoListScript.js"></script>
+  </body>
 </html>
