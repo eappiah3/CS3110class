@@ -74,7 +74,6 @@ app.post('/api/signup', (req, res) => {
     [username, password, 'author'],
     (err) => {
       if (err) {
-        // Username already taken
         if (err.code === 'ER_DUP_ENTRY') {
           return res.status(409).json({ error: 'Username already taken' });
         }
@@ -102,16 +101,17 @@ app.get('/api/todos', (req, res) => {
 
 /* CREATE TODO — Login required */
 app.post('/api/todos', basicAuth, (req, res) => {
-  const { text } = req.body;
+  const { text, due_date } = req.body;  // NEW: accept due_date
   db.query(
-    'INSERT INTO todos (text, completed, username, last_modified_by) VALUES (?, ?, ?, ?)',
-    [text, false, req.user.username, req.user.username],
+    'INSERT INTO todos (text, completed, due_date, username, last_modified_by) VALUES (?, ?, ?, ?, ?)',
+    [text, false, due_date || null, req.user.username, req.user.username],
     (err, result) => {
       if (err) return res.status(500).send(err);
       res.json({
         id: result.insertId,
         text,
-        completed: false
+        completed: false,
+        due_date: due_date || null
       });
     }
   );
@@ -120,10 +120,10 @@ app.post('/api/todos', basicAuth, (req, res) => {
 /* UPDATE TODO — Login required */
 app.put('/api/todos/:id', basicAuth, (req, res) => {
   const id = req.params.id;
-  const { text, completed } = req.body;
+  const { text, completed, due_date } = req.body;  // NEW: accept due_date
   db.query(
-    'UPDATE todos SET text = ?, completed = ?, last_modified_by = ? WHERE id = ?',
-    [text, completed, req.user.username, id],
+    'UPDATE todos SET text = ?, completed = ?, due_date = ?, last_modified_by = ? WHERE id = ?',
+    [text, completed, due_date || null, req.user.username, id],
     (err) => {
       if (err) return res.status(500).send(err);
       res.json({ message: 'Todo updated' });
@@ -161,17 +161,20 @@ app.get('/api/classes', (req, res) => {
 
 /* CREATE CLASS — Login required */
 app.post('/api/classes', basicAuth, (req, res) => {
-  const { className, day, time } = req.body;
+  const { className, day, time, location, recurring, start_date } = req.body;  // NEW fields
   db.query(
-    'INSERT INTO classes (className, day, time, username, last_modified_by) VALUES (?, ?, ?, ?, ?)',
-    [className, day, time, req.user.username, req.user.username],
+    'INSERT INTO classes (className, day, time, location, recurring, start_date, username, last_modified_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [className, day, time, location || null, recurring || false, start_date || null, req.user.username, req.user.username],
     (err, result) => {
       if (err) return res.status(500).send(err);
       res.json({
         id: result.insertId,
         className,
         day,
-        time
+        time,
+        location: location || null,
+        recurring: recurring || false,
+        start_date: start_date || null
       });
     }
   );
@@ -180,10 +183,10 @@ app.post('/api/classes', basicAuth, (req, res) => {
 /* UPDATE CLASS — Login required */
 app.put('/api/classes/:id', basicAuth, (req, res) => {
   const id = req.params.id;
-  const { className, day, time } = req.body;
+  const { className, day, time, location, recurring, start_date } = req.body;  // NEW fields
   db.query(
-    'UPDATE classes SET className = ?, day = ?, time = ?, last_modified_by = ? WHERE id = ?',
-    [className, day, time, req.user.username, id],
+    'UPDATE classes SET className = ?, day = ?, time = ?, location = ?, recurring = ?, start_date = ?, last_modified_by = ? WHERE id = ?',
+    [className, day, time, location || null, recurring || false, start_date || null, req.user.username, id],
     (err) => {
       if (err) return res.status(500).send(err);
       res.json({ message: 'Class updated' });
