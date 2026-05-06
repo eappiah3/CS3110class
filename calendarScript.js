@@ -1,4 +1,4 @@
-const CALENDAR_TODOS_AP   = 'https://eacs3110.mooo.com/api/todos';
+const CALENDAR_TODOS_API   = 'https://eacs3110.mooo.com/api/todos';
 const CALENDAR_CLASSES_API = '/api/classes';
 
 /* =======================
