@@ -22,7 +22,7 @@ body {
    LAYOUT CONTAINER
 ======================= */
 .container {
-  max-width: 680px;
+  max-width: 780px;
   margin: 0 auto;
 }
 
@@ -33,22 +33,98 @@ h1, h2, h3 {
 }
 
 /* =======================
-   FORM CARD
+   TOP BAR
 ======================= */
-form#classScheduleForm {
-  background: #ffffff;
-  border: 0.5px solid #c7c3f5;
-  border-radius: 14px;
-  padding: 24px 28px;
-  margin-bottom: 28px;
+.top-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.top-bar button {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 16px;
+  border: 1px solid #c7c3f5;
+  border-radius: 8px;
+  background: #f5f4ff;
+  color: #534ab7;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.top-bar button:hover {
+  background: #ede9ff;
+}
+
+/* =======================
+   TABS (FILE FOLDER STYLE)
+======================= */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 0;
   align-items: flex-end;
 }
 
+.tab-btn {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 24px;
+  border: 1px solid #c7c3f5;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  background: #d4d2f0;
+  color: #7c73e6;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  position: relative;
+  top: 1px;
+  height: 38px;
+}
+
+.tab-btn:hover {
+  background: #e4e2f8;
+  color: #534ab7;
+}
+
+.tab-btn.active {
+  background: #ffffff;
+  color: #1e1b4b;
+  border-color: #c7c3f5;
+  border-bottom: 1px solid #ffffff;
+  z-index: 1;
+  height: 44px;
+}
+
+/* =======================
+   TAB CONTENT PANEL
+======================= */
+.tab-content {
+  background: #ffffff;
+  border: 1px solid #c7c3f5;
+  border-radius: 0 10px 10px 10px;
+  padding: 24px;
+  position: relative;
+  z-index: 0;
+}
+
+/* =======================
+   FORM CARD
+======================= */
+form#classScheduleForm,
+form#todoForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
+
 form#classScheduleForm input,
-form#classScheduleForm select {
+form#classScheduleForm select,
+form#todoForm input {
   font-size: 14px;
   padding: 9px 13px;
   border: 1px solid #c7c3f5;
@@ -61,13 +137,15 @@ form#classScheduleForm select {
 }
 
 form#classScheduleForm input:focus,
-form#classScheduleForm select:focus {
+form#classScheduleForm select:focus,
+form#todoForm input:focus {
   border-color: #7c73e6;
   box-shadow: 0 0 0 3px rgba(124, 115, 230, 0.15);
   background: #ffffff;
 }
 
-form#classScheduleForm button[type="submit"] {
+form#classScheduleForm button[type="submit"],
+form#todoForm button[type="submit"] {
   font-size: 14px;
   font-weight: 600;
   padding: 9px 20px;
@@ -80,12 +158,101 @@ form#classScheduleForm button[type="submit"] {
   white-space: nowrap;
 }
 
-form#classScheduleForm button[type="submit"]:hover {
+form#classScheduleForm button[type="submit"]:hover,
+form#todoForm button[type="submit"]:hover {
   background: #3c3489;
 }
 
-form#classScheduleForm button[type="submit"]:active {
+form#classScheduleForm button[type="submit"]:active,
+form#todoForm button[type="submit"]:active {
   transform: scale(0.97);
+}
+
+/* =======================
+   DAY CHECKBOXES
+   Used in the class schedule form
+   and the inline edit form.
+======================= */
+.day-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  background: #f5f4ff;
+  border: 1px solid #c7c3f5;
+  border-radius: 8px;
+}
+
+.day-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #534ab7;
+  margin-right: 4px;
+}
+
+.day-checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #1e1b4b;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.day-checkboxes label:hover {
+  background: #ede9ff;
+}
+
+.day-checkboxes input[type="checkbox"] {
+  accent-color: #534ab7;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+/* =======================
+   SPECIFIC DATES WRAPPER
+======================= */
+#specificDatesWrapper,
+.edit-specific-wrapper,
+.ec-specific-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#specificDatesWrapper small,
+.edit-specific-wrapper small,
+.ec-specific-wrapper small {
+  font-size: 12px;
+  color: #6b6b8a;
+}
+
+/* =======================
+   RECURRING LABEL
+   Used for the "Repeats weekly" checkbox
+   and the "Completed" checkbox in modals.
+======================= */
+.recurring-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #1e1b4b;
+  cursor: pointer;
+}
+
+.recurring-label input[type="checkbox"] {
+  accent-color: #534ab7;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
 }
 
 /* =======================
@@ -247,69 +414,127 @@ li span {
 }
 
 /* =======================
-   TOP BAR
+   CALENDAR
 ======================= */
-.top-bar {
+#calendarView {
+  width: 100%;
+}
+
+/* =======================
+   CALENDAR MODAL
+   The popup that appears when you
+   click an event on the calendar.
+======================= */
+.cal-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(30, 27, 75, 0.4);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  justify-content: center;
+  z-index: 2000;
 }
 
-/* =======================
-   TABS
-======================= */
-/* =======================
-   TABS (FILE FOLDER STYLE)
-======================= */
-.tabs {
+.cal-modal-box {
+  background: #ffffff;
+  border: 0.5px solid #c7c3f5;
+  border-radius: 16px;
+  padding: 28px;
+  width: 100%;
+  max-width: 480px;
   display: flex;
-  gap: 4px;
-  margin-bottom: 0;
-  align-items: flex-end;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.tab-btn {
+.cal-modal-box h3 {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.cal-modal-box form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cal-modal-box input,
+.cal-modal-box select {
+  font-size: 14px;
+  padding: 9px 13px;
+  border: 1px solid #c7c3f5;
+  border-radius: 8px;
+  background: #f5f4ff;
+  color: #1e1b4b;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  width: 100%;
+}
+
+.cal-modal-box input:focus,
+.cal-modal-box select:focus {
+  border-color: #7c73e6;
+  box-shadow: 0 0 0 3px rgba(124, 115, 230, 0.15);
+  background: #ffffff;
+}
+
+.cal-modal-btns {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cal-modal-btns button[type="submit"] {
   font-size: 14px;
   font-weight: 600;
-  padding: 8px 24px;
-  border: 1px solid #c7c3f5;
-  border-bottom: none;
-  border-radius: 10px 10px 0 0;
-  background: #d4d2f0;
-  color: #7c73e6;
+  padding: 9px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #534ab7;
+  color: #ffffff;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  position: relative;
-  top: 1px;
-  /* Inactive tabs are shorter so active tab stands taller */
-  height: 38px;
+  transition: background 0.15s;
+  flex: 1;
 }
 
-.tab-btn:hover {
-  background: #e4e2f8;
-  color: #534ab7;
+.cal-modal-btns button[type="submit"]:hover {
+  background: #3c3489;
 }
 
-.tab-btn.active {
-  background: #ffffff;
-  color: #1e1b4b;
-  border-color: #c7c3f5;
-  border-bottom: 1px solid #ffffff;
-  z-index: 1;
-  /* Active tab is taller so it looks like it's in front */
-  height: 44px;
+.cal-modal-btns .delete-btn {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 9px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #fcebeb;
+  color: #a32d2d;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex: 1;
 }
 
-/* =======================
-   TAB CONTENT PANEL
-======================= */
+.cal-modal-btns .delete-btn:hover {
+  background: #f5d0d0;
+}
 
-.tab-content {
-  background: #ffffff;
+.cal-modal-btns .cancel-btn {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 9px 20px;
   border: 1px solid #c7c3f5;
-  border-radius: 0 10px 10px 10px;
-  padding: 24px;
-  position: relative;
-  z-index: 0;
+  border-radius: 8px;
+  background: #f5f4ff;
+  color: #6b6b8a;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex: 1;
+}
+
+.cal-modal-btns .cancel-btn:hover {
+  background: #ede9ff;
+  color: #1e1b4b;
 }
