@@ -9,8 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
     <script>
-      // If not logged in, send to login page right away
-      if (!localStorage.getItem("username") || !localStorage.getItem("password")) {
+      // If there is no token, send to login page right away
+      if (!localStorage.getItem('token')) {
         window.location.href = 'login.html';
       }
     </script>
@@ -52,13 +52,13 @@
           <!-- Multi-day checkboxes -->
           <div class="day-checkboxes">
             <span class="day-label">Days:</span>
-            <label><input type="checkbox" name="day" value="Sunday"> Sunday</label>
-            <label><input type="checkbox" name="day" value="Monday"> Monday</label>
-            <label><input type="checkbox" name="day" value="Tuesday"> Tueuesday</label>
-            <label><input type="checkbox" name="day" value="Wednesday"> Wednesday</label>
-            <label><input type="checkbox" name="day" value="Thursday"> Thursday</label>
-            <label><input type="checkbox" name="day" value="Friday"> Friday</label>
-            <label><input type="checkbox" name="day" value="Saturday"> Saturday</label>
+            <label><input type="checkbox" name="day" value="Monday"> Mon</label>
+            <label><input type="checkbox" name="day" value="Tuesday"> Tue</label>
+            <label><input type="checkbox" name="day" value="Wednesday"> Wed</label>
+            <label><input type="checkbox" name="day" value="Thursday"> Thu</label>
+            <label><input type="checkbox" name="day" value="Friday"> Fri</label>
+            <label><input type="checkbox" name="day" value="Saturday"> Sat</label>
+            <label><input type="checkbox" name="day" value="Sunday"> Sun</label>
           </div>
 
           <!-- Time and location -->
@@ -101,17 +101,13 @@
     <script>
       // Switch between tabs
       function showTab(tabName, clickedBtn) {
-        // Hide all tab content
         document.querySelectorAll('.tab-content').forEach(tab => {
           tab.style.display = 'none';
         });
-        // Remove active style from all tab buttons
         document.querySelectorAll('.tab-btn').forEach(btn => {
           btn.classList.remove('active');
         });
-        // Show the selected tab
         document.getElementById(tabName).style.display = 'block';
-        // Highlight the clicked button
         clickedBtn.classList.add('active');
 
         // If switching to calendar, refresh it so it renders correctly
@@ -123,14 +119,30 @@
       // Show or hide the specific dates input based on frequency selection
       function toggleSpecificDates() {
         const frequency = document.getElementById('frequency').value;
-        const wrapper = document.getElementById('specificDatesWrapper');
+        const wrapper   = document.getElementById('specificDatesWrapper');
         wrapper.style.display = frequency === 'specific' ? 'block' : 'none';
       }
 
-      function logout() {
-        localStorage.removeItem("username");
-        localStorage.removeItem("password");
-        window.location.href = 'login.html';
+      /* =======================
+         LOGOUT
+         Tells the server to delete the session token,
+         then clears localStorage and goes to login.
+      ======================= */
+      async function logout() {
+        const token = localStorage.getItem('token');
+        try {
+          await fetch('/api/logout', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+        } catch (err) {
+          console.error('Logout error:', err);
+        } finally {
+          // Always clear localStorage and redirect even if the request fails
+          localStorage.removeItem('token');
+          localStorage.removeItem('username');
+          window.location.href = 'login.html';
+        }
       }
     </script>
 
