@@ -1,7 +1,8 @@
 const express = require('express');
-const cors = require('cors');
-const mysql = require('mysql2');
-const app = express();
+const cors    = require('cors');
+const mysql   = require('mysql2');
+const crypto  = require('crypto'); // Built into Node — generates secure tokens
+const app     = express();
 
 app.use(express.json());
 app.use(cors());
@@ -12,8 +13,8 @@ app.use(express.static(__dirname));
    Connects to the local MySQL database.
 ======================= */
 const db = mysql.createConnection({
-  host: '127.0.0.1',
-  user: 'appuser',
+  host:     '127.0.0.1',
+  user:     'appuser',
   password: 'appUser123!',
   database: 'CS3110project'
 });
@@ -27,35 +28,93 @@ db.connect(err => {
 });
 
 /* =======================
-   BASIC AUTH MIDDLEWARE
-   Checks the username and password sent
-   with each request against the database.
-   If they don't match, the request is blocked.
+   SESSION AUTH MIDDLEWARE
+   Instead of checking username/password on every request,
+   we check the session token that was given at login.
+   The token is sent in the Authorization header as:
+   "Bearer <token>"
 ======================= */
-function basicAuth(req, res, next) {
+function sessionAuth(req, res, next) {
   const authHeader = req.headers['authorization'];
-  if (!authHeader) {
-    res.setHeader('WWW-Authenticate', 'Basic');
-    return res.status(401).send('Authentication required');
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required' });
   }
 
-  const base64 = authHeader.split(' ')[1];
-  const decoded = Buffer.from(base64, 'base64').toString();
-  const [username, password] = decoded.split(':');
+  // Pull the token out of the header
+  const token = authHeader.split(' ')[1];
 
+  // Look up the token in the sessions table
   db.query(
-    'SELECT * FROM users WHERE username = ? AND password = ?',
-    [username, password],
+    'SELECT sessions.username, users.role FROM sessions JOIN users ON sessions.username = users.username WHERE sessions.id = ?',
+    [token],
     (err, results) => {
-      if (err) return res.status(500).send(err);
-      if (results.length === 0) {
-        return res.status(401).send('Invalid credentials');
-      }
+      if (err)                  return res.status(500).send(err);
+      if (results.length === 0) return res.status(401).json({ error: 'Invalid or expired session' });
+
+      // Attach the user info to the request so routes can use it
       req.user = results[0];
       next();
     }
   );
 }
+
+/* =======================
+   LOGIN
+   Checks username and password, creates a session
+   token, saves it to the database, and returns it.
+======================= */
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
+
+  db.query(
+    'SELECT * FROM users WHERE username = ? AND password = ?',
+    [username, password],
+    (err, results) => {
+      if (err)                  return res.status(500).send(err);
+      if (results.length === 0) return res.status(401).json({ error: 'Invalid username or password' });
+
+      const user = results[0];
+
+      // Generate a secure random token
+      const token = crypto.randomBytes(32).toString('hex');
+
+      // Save the token to the sessions table
+      db.query(
+        'INSERT INTO sessions (id, username) VALUES (?, ?)',
+        [token, user.username],
+        (err) => {
+          if (err) return res.status(500).send(err);
+
+          // Send the token back to the client
+          res.json({ token, username: user.username, role: user.role });
+        }
+      );
+    }
+  );
+});
+
+/* =======================
+   LOGOUT
+   Deletes the session token from the database
+   so it can no longer be used.
+======================= */
+app.post('/api/logout', sessionAuth, (req, res) => {
+  const token = req.headers['authorization'].split(' ')[1];
+
+  db.query(
+    'DELETE FROM sessions WHERE id = ?',
+    [token],
+    (err) => {
+      if (err) return res.status(500).send(err);
+      res.json({ message: 'Logged out successfully' });
+    }
+  );
+});
 
 /* =======================
    SELF SIGNUP (PUBLIC)
@@ -90,35 +149,27 @@ app.post('/api/signup', (req, res) => {
 
 /* GET TODOS — No login required to view */
 app.get('/api/todos', (req, res) => {
-  db.query(
-    'SELECT * FROM todos',
-    (err, results) => {
-      if (err) return res.status(500).send(err);
-      res.json(results);
-    }
-  );
+  db.query('SELECT * FROM todos', (err, results) => {
+    if (err) return res.status(500).send(err);
+    res.json(results);
+  });
 });
 
 /* CREATE TODO — Login required */
-app.post('/api/todos', basicAuth, (req, res) => {
+app.post('/api/todos', sessionAuth, (req, res) => {
   const { text, due_date } = req.body;
   db.query(
     'INSERT INTO todos (text, completed, due_date, username, last_modified_by) VALUES (?, ?, ?, ?, ?)',
     [text, false, due_date || null, req.user.username, req.user.username],
     (err, result) => {
       if (err) return res.status(500).send(err);
-      res.json({
-        id: result.insertId,
-        text,
-        completed: false,
-        due_date: due_date || null
-      });
+      res.json({ id: result.insertId, text, completed: false, due_date: due_date || null });
     }
   );
 });
 
 /* UPDATE TODO — Login required */
-app.put('/api/todos/:id', basicAuth, (req, res) => {
+app.put('/api/todos/:id', sessionAuth, (req, res) => {
   const id = req.params.id;
   const { text, completed, due_date } = req.body;
   db.query(
@@ -132,16 +183,12 @@ app.put('/api/todos/:id', basicAuth, (req, res) => {
 });
 
 /* DELETE TODO — Login required */
-app.delete('/api/todos/:id', basicAuth, (req, res) => {
+app.delete('/api/todos/:id', sessionAuth, (req, res) => {
   const id = req.params.id;
-  db.query(
-    'DELETE FROM todos WHERE id = ?',
-    [id],
-    (err) => {
-      if (err) return res.status(500).send(err);
-      res.json({ message: 'Todo deleted' });
-    }
-  );
+  db.query('DELETE FROM todos WHERE id = ?', [id], (err) => {
+    if (err) return res.status(500).send(err);
+    res.json({ message: 'Todo deleted' });
+  });
 });
 
 /* =======================
@@ -150,67 +197,32 @@ app.delete('/api/todos/:id', basicAuth, (req, res) => {
 
 /* GET CLASSES — No login required to view */
 app.get('/api/classes', (req, res) => {
-  db.query(
-    'SELECT * FROM classes',
-    (err, results) => {
-      if (err) return res.status(500).send(err);
-      res.json(results);
-    }
-  );
+  db.query('SELECT * FROM classes', (err, results) => {
+    if (err) return res.status(500).send(err);
+    res.json(results);
+  });
 });
 
 /* CREATE CLASS — Login required */
-app.post('/api/classes', basicAuth, (req, res) => {
+app.post('/api/classes', sessionAuth, (req, res) => {
   const { className, day, time, location, frequency, specific_dates, start_date } = req.body;
-
-  // day is stored as a comma separated string e.g. "Monday,Wednesday"
-  // specific_dates is stored as a comma separated string e.g. "2026-05-01,2026-05-15"
   db.query(
     'INSERT INTO classes (className, day, time, location, frequency, specific_dates, start_date, username, last_modified_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [
-      className,
-      day || null,
-      time,
-      location || null,
-      frequency || 'none',
-      specific_dates || null,
-      start_date || null,
-      req.user.username,
-      req.user.username
-    ],
+    [className, day || null, time, location || null, frequency || 'none', specific_dates || null, start_date || null, req.user.username, req.user.username],
     (err, result) => {
       if (err) return res.status(500).send(err);
-      res.json({
-        id: result.insertId,
-        className,
-        day,
-        time,
-        location:       location || null,
-        frequency:      frequency || 'none',
-        specific_dates: specific_dates || null,
-        start_date:     start_date || null
-      });
+      res.json({ id: result.insertId, className, day, time, location: location || null, frequency: frequency || 'none', specific_dates: specific_dates || null, start_date: start_date || null });
     }
   );
 });
 
 /* UPDATE CLASS — Login required */
-app.put('/api/classes/:id', basicAuth, (req, res) => {
+app.put('/api/classes/:id', sessionAuth, (req, res) => {
   const id = req.params.id;
   const { className, day, time, location, frequency, specific_dates, start_date } = req.body;
   db.query(
     'UPDATE classes SET className = ?, day = ?, time = ?, location = ?, frequency = ?, specific_dates = ?, start_date = ?, last_modified_by = ? WHERE id = ?',
-    [
-      className,
-      day || null,
-      time,
-      location || null,
-      frequency || 'none',
-      specific_dates || null,
-      start_date || null,
-      req.user.username,
-      id
-    ],
+    [className, day || null, time, location || null, frequency || 'none', specific_dates || null, start_date || null, req.user.username, id],
     (err) => {
       if (err) return res.status(500).send(err);
       res.json({ message: 'Class updated' });
@@ -219,24 +231,18 @@ app.put('/api/classes/:id', basicAuth, (req, res) => {
 });
 
 /* DELETE CLASS — Login required */
-app.delete('/api/classes/:id', basicAuth, (req, res) => {
+app.delete('/api/classes/:id', sessionAuth, (req, res) => {
   const id = req.params.id;
-  db.query(
-    'DELETE FROM classes WHERE id = ?',
-    [id],
-    (err) => {
-      if (err) return res.status(500).send(err);
-      res.json({ message: 'Class deleted' });
-    }
-  );
+  db.query('DELETE FROM classes WHERE id = ?', [id], (err) => {
+    if (err) return res.status(500).send(err);
+    res.json({ message: 'Class deleted' });
+  });
 });
 
 /* =======================
    USER ROUTES (ADMIN ONLY)
-   Only admins can create users this way.
-   Regular users should use /api/signup instead.
 ======================= */
-app.post('/api/users', basicAuth, (req, res) => {
+app.post('/api/users', sessionAuth, (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Forbidden' });
   }
