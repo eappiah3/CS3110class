@@ -13,6 +13,7 @@
   <body>
     <div class="container">
 
+      <!-- TOP BAR -->
       <div class="top-bar">
         <h1>My Planner</h1>
         <button onclick="logout()">Log Out</button>
@@ -20,8 +21,8 @@
 
       <!-- TAB BUTTONS -->
       <div class="tabs">
-        <button class="tab-btn active" onclick="showTab('todo')">To-Do List</button>
-        <button class="tab-btn" onclick="showTab('schedule')">Class Schedule</button>
+        <button class="tab-btn active" onclick="showTab('todo', this)">To-Do List</button>
+        <button class="tab-btn" onclick="showTab('schedule', this)">Class Schedule</button>
       </div>
 
       <!-- TO-DO TAB -->
@@ -54,4 +55,36 @@
         <p style="font-size: 13px; color: #6b6b8a; margin-bottom: 10px;">
           Double-click an item to edit or delete
         </p>
-        <ul id="class
+        <ul id="classSchedule"></ul>
+      </div>
+
+    </div>
+
+    <script>
+      // Switch between tabs
+      function showTab(tabName, clickedBtn) {
+        // Hide all tab content
+        document.querySelectorAll('.tab-content').forEach(tab => {
+          tab.style.display = 'none';
+        });
+        // Remove active style from all tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        // Show the selected tab
+        document.getElementById(tabName).style.display = 'block';
+        // Highlight the clicked button
+        clickedBtn.classList.add('active');
+      }
+
+      function logout() {
+        localStorage.removeItem("username");
+        localStorage.removeItem("password");
+        window.location.href = 'login.html';
+      }
+    </script>
+
+    <script src="ToDoListScript.js"></script>
+    <script src="ClassScheduleScript.js"></script>
+  </body>
+</html>
