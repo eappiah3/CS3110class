@@ -140,24 +140,6 @@ function addTodoToDOM(todo) {
     }
   };
 
-  /* =======================
-     DOUBLE CLICK — DELETE
-  ======================= */
-  li.ondblclick = async () => {
-    if (!confirm('Delete this to do list item?')) return;
-    try {
-      const res = await fetch(`${TODO_API}/${todo.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': getAuthHeader() }
-      });
-      if (!res.ok) throw new Error('Delete failed');
-      li.remove();
-    } catch (err) {
-      console.error(err);
-      alert('Could not delete todo');
-    }
-  };
-
   if (todo.completed) li.classList.add('completed');
 
   li.appendChild(checkbox);
