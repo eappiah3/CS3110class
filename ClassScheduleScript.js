@@ -72,7 +72,9 @@ async function loadClasses() {
       renderClasses(JSON.parse(cached));
     }
 
-    const res = await fetch(CLASSES_API);
+    const res = await fetch(CLASSES_API, {
+      headers: { 'Authorization': getAuthHeader() }
+    });
     if (!res.ok) throw new Error('Failed to fetch classes');
     const data = await res.json();
 
